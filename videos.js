@@ -27,4 +27,4 @@ window.VIDEOS_MARIA = [
 
 // Dirección de la conexión con la hoja de Google (vídeos y ajustes de la zona para mayores).
 // Si está vacía, se usa la lista de arriba.
-window.HOJA_VIDEOS = "";
+window.HOJA_VIDEOS = "https://script.google.com/macros/s/AKfycbzp9kZ5-dVvOY5Cl1WinXqD227pYovhwAbko-2pUCiqQr2J1BzSsAO4ekVA9Gb1BbxS/exec";
