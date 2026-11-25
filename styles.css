@@ -457,3 +457,74 @@ main { padding-top: 18px; }
 .miniatura-dibujo.anadir span { font-size: 3rem; line-height: 1; }
 .hoja-lienzo { aspect-ratio: 1; height: auto; display: grid; place-items: center; }
 .hoja-lienzo canvas { width: 100%; height: 100%; object-fit: contain; touch-action: none; display: block; cursor: pointer; }
+
+/* ---------- Juegos nuevos ---------- */
+.instalar-zona { margin-top: 24px; }
+.btn-instalar { background: var(--g-lila); color: #fff; font-size: 1.2rem; }
+.ayuda-instalar { position: fixed; inset: 0; z-index: 20; background: rgba(47,33,71,.45); display: grid; place-items: center; padding: 16px; }
+.ayuda-instalar .caja { background: #fff; border-radius: var(--radio); padding: 24px; max-width: 420px; text-align: center; font-size: 1.2rem; box-shadow: var(--sombra); }
+.ayuda-instalar .ico { font-size: 4rem; }
+
+/* Burbujas */
+.zona-burbujas { position: relative; height: 62vh; overflow: hidden; border-radius: var(--radio); background: linear-gradient(180deg, #e3f3ff, #fdf3ff); box-shadow: var(--sombra-suave); }
+.burbuja {
+  position: absolute; bottom: -130px; border-radius: 50%; padding: 0;
+  background: radial-gradient(circle at 30% 28%, rgba(255,255,255,.95) 0 10%, transparent 11%), radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--c) 35%, transparent) 0 55%, var(--c) 100%);
+  box-shadow: inset 0 0 12px rgba(255,255,255,.7); animation: subir linear forwards; touch-action: none;
+}
+.burbuja.pop { animation: explotar .25s forwards !important; }
+.burbuja.mal { filter: grayscale(.6); }
+@keyframes subir { to { transform: translateY(calc(-62vh - 160px)) translateX(20px); } }
+@keyframes explotar { to { transform: scale(1.6); opacity: 0; } }
+
+/* Puzle */
+.puzle-zona { display: flex; gap: 16px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+.modelo { width: 120px; background: #fff; border-radius: 20px; box-shadow: var(--sombra-suave); padding: 6px; }
+.modelo svg { width: 100%; display: block; }
+.puzle { display: grid; gap: 4px; width: min(100%, 56vh); background: #fff; padding: 6px; border-radius: var(--radio); box-shadow: var(--sombra); }
+.pieza { padding: 0; background: none; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(47,33,71,.2); transition: transform .15s; }
+.pieza svg { width: 100%; height: 100%; display: block; }
+.pieza .z, .modelo .z { stroke: #2f2147; stroke-width: 3.5; stroke-linejoin: round; }
+.pieza .l, .modelo .l { fill: none; stroke: #2f2147; stroke-width: 3.5; stroke-linecap: round; }
+.pieza.sel { transform: scale(.92); outline: 5px solid #8b5cff; }
+.pieza.bien { box-shadow: 0 0 0 3px #3cc98a; }
+
+/* Sombras */
+.sombra-grande { font-size: clamp(7rem, 30vw, 11rem); text-align: center; line-height: 1.1; filter: brightness(0) opacity(.75); transition: filter .5s; margin-bottom: 12px; }
+.sombra-grande.revelada { filter: none; }
+.opcion { font-size: clamp(3rem, 12vw, 4.5rem); }
+
+/* Tamaños */
+.fila-tamanos { display: flex; align-items: flex-end; justify-content: center; gap: 4vw; min-height: 40vh; flex-wrap: wrap; }
+.cosa-tam { background: rgba(255,255,255,.8); border-radius: var(--radio); box-shadow: var(--sombra-suave); padding: 10px 14px; line-height: 1; }
+.cosa-tam.mal { animation: temblar .4s; }
+.fila-orden { display: flex; justify-content: center; align-items: flex-end; gap: 12px; margin-top: 20px; }
+.hueco { width: 76px; height: 76px; border-radius: 20px; border: 4px dashed #c9a8ff; display: grid; place-items: center; line-height: 1; }
+.hueco.lleno { border-style: solid; border-color: #3cc98a; background: #eafff2; }
+
+/* Letras */
+.hoja-letra { background: #fff; border-radius: var(--radio); box-shadow: var(--sombra); width: min(100%, 58vh); aspect-ratio: 1; margin: 0 auto; }
+.hoja-letra svg { width: 100%; height: 100%; touch-action: none; display: block; }
+.hoja-letra .guia { fill: none; stroke: #eee3ff; stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+.hoja-letra .hecho { fill: none; stroke: #ff5f9e; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.hoja-letra .salida { fill: #3cc98a; }
+.hoja-letra .num { fill: #fff; font: 800 6px "Baloo 2", sans-serif; text-anchor: middle; pointer-events: none; }
+.hoja-letra .siguiente-punto { fill: #ffd400; stroke: #fff; stroke-width: 1.5; animation: latido .8s infinite; pointer-events: none; }
+
+/* Tarta */
+.tarta { position: relative; width: min(100%, 70vh); margin: 0 auto; touch-action: manipulation; }
+.tarta-svg { width: 100%; display: block; filter: drop-shadow(0 10px 12px rgba(47,33,71,.2)); }
+.puesto { position: absolute; transform: translate(-50%, -50%); font-size: clamp(1.8rem, 7vw, 3rem); pointer-events: none; animation: salto .3s; }
+.paleta.adornos { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.color-btn.adorno { background: #fff; font-size: 1.7rem; display: grid; place-items: center; }
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .zona-burbujas { height: calc(100vh - 150px); }
+  .sombra-grande { font-size: 5rem; }
+  .fila-tamanos { min-height: 0; }
+  .hoja-letra { width: calc(100vh - 170px); }
+  .tarta { width: calc((100vh - 220px) * 1.25); }
+  .puzle { width: calc(100vh - 140px); }
+}
+.puesto { animation: aparecer .3s cubic-bezier(.3,1.6,.6,1) both; }
+@keyframes aparecer { from { transform: translate(-50%, -50%) scale(0); } to { transform: translate(-50%, -50%) scale(1); } }

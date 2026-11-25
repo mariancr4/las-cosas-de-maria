@@ -93,11 +93,14 @@
         <p class="hola">¡Hola, María!</p>
       </div>
       <div class="rejilla"></div>
+      <div class="acciones instalar-zona"></div>
     </section>`);
+    botonInstalar(v.querySelector(".instalar-zona"));
     // Si todavía no existe img/maria.png, mostramos un dibujo de reserva
     v.querySelector("#avatar img").onerror = function () { this.parentElement.textContent = "👧"; };
     const rej = v.querySelector(".rejilla");
-    SECCIONES.forEach(s => {
+    const todas = SECCIONES.slice(0, -1).concat((window.JUEGOS_EXTRA || []).map(j => ({ ...j, voz: j.nombre })), SECCIONES.slice(-1));
+    todas.forEach(s => {
       const b = h(`<button class="tarjeta ${s.clase}"><span class="ico">${s.ico}</span>${s.nombre}</button>`);
       b.onclick = () => { decir(s.voz); location.hash = "#/" + s.ruta; };
       rej.appendChild(b);
@@ -372,9 +375,15 @@
         b.onclick = () => { location.hash = "#/colorear/mio-" + d.id; };
         rej.appendChild(b);
       });
-      const mas = h(`<label class="miniatura-dibujo anadir" aria-label="Añadir dibujo"><span>➕</span><small>Añadir dibujo</small><input type="file" accept="image/*" multiple hidden></label>`);
+      const mas = h(`<label class="miniatura-dibujo anadir" aria-label="Añadir dibujo"><span>➕</span><small>Añadir dibujo</small><input type="file" accept="image/*,application/pdf" multiple hidden></label>`);
       mas.querySelector("input").onchange = async (e) => {
-        for (const f of e.target.files) await misDibujos.guardar(await prepararLamina(f));
+        for (const f of e.target.files) {
+          try {
+            if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+              for (const img of await pdfAImagenes(f)) await misDibujos.guardar(await prepararLamina(img));
+            } else await misDibujos.guardar(await prepararLamina(f));
+          } catch (err) { console.warn("No se pudo cargar", f.name, err); }
+        }
         location.hash = "#/colorear"; navegar();
       };
       rej.appendChild(mas);
@@ -404,6 +413,32 @@
       borrar: (id) => tx("readwrite", st => st.delete(id)),
     };
   })();
+
+  // Convierte cada página de un PDF en una imagen (carga pdf.js solo cuando hace falta)
+  let pdfjs = null;
+  async function pdfAImagenes(archivo) {
+    if (!pdfjs) {
+      await new Promise((ok, mal) => {
+        const sc = document.createElement("script");
+        sc.src = "/lib/pdf.min.js";
+        sc.onload = ok; sc.onerror = mal; document.head.appendChild(sc);
+      });
+      pdfjs = window.pdfjsLib;
+      pdfjs.GlobalWorkerOptions.workerSrc = "/lib/pdf.worker.min.js";
+    }
+    const doc = await pdfjs.getDocument({ data: await archivo.arrayBuffer() }).promise;
+    const imagenes = [];
+    for (let n = 1; n <= Math.min(doc.numPages, 10); n++) {
+      const pag = await doc.getPage(n);
+      const base = pag.getViewport({ scale: 1 });
+      const vp = pag.getViewport({ scale: 1400 / Math.max(base.width, base.height) });
+      const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      await pag.render({ canvasContext: ctx, viewport: vp }).promise;
+      imagenes.push(await new Promise(ok => c.toBlob(ok, "image/png")));
+    }
+    return imagenes;
+  }
 
   // Convierte la imagen a blanco y negro limpio para que el relleno funcione bien
   function prepararLamina(archivo) {
@@ -686,8 +721,32 @@
       title="Vídeo" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></section>`);
   }
 
+  function botonInstalar(zona) {
+    const yaApp = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+    if (yaApp) return;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const b = h(`<button class="btn-accion btn-instalar">📲 Instalar la app</button>`);
+    b.onclick = async () => {
+      if (avisoInstalar) { avisoInstalar.prompt(); await avisoInstalar.userChoice; avisoInstalar = null; return; }
+      const ayuda = h(`<div class="ayuda-instalar" role="dialog"><div class="caja">
+        <div class="ico">📲</div>
+        <p>${ios
+          ? "En el iPad o iPhone: toca el botón <b>Compartir</b> <span class='ic'>⬆️</span> de Safari y luego <b>«Añadir a pantalla de inicio»</b>."
+          : "En el menú del navegador <b>⋮</b> elige <b>«Instalar aplicación»</b> o <b>«Añadir a pantalla de inicio»</b>."}</p>
+        <button class="btn-accion">¡Vale!</button></div></div>`);
+      ayuda.onclick = (e) => { if (e.target === ayuda || e.target.tagName === "BUTTON") ayuda.remove(); };
+      document.body.appendChild(ayuda);
+    };
+    zona.appendChild(b);
+  }
+
+  /* ---------- Juegos extra (juegos2.js) ---------- */
+  const H = { h, decir, celebrar, nota, azar, barajar, elegir };
+  const EXTRA = window.JUEGOS_EXTRA || [];
+
   /* ---------- Navegación ---------- */
   const RUTAS = { colores, formas, memoria, contar, pintar, colorear, musica, videos };
+  EXTRA.forEach(j => { RUTAS[j.ruta] = () => j.crear(H); });
   let vistaActual = null;
   function navegar() {
     const partes = location.hash.replace(/^#\/?/, "").split("/");
@@ -714,6 +773,9 @@
   navegar();
 
   /* ---------- App instalable (PWA) ---------- */
+  let avisoInstalar = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); avisoInstalar = e; document.querySelectorAll(".btn-instalar").forEach(b => b.classList.remove("oculto")); });
+  window.addEventListener("appinstalled", () => document.querySelectorAll(".btn-instalar").forEach(b => b.remove()));
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
   }
