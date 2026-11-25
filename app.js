@@ -81,6 +81,7 @@
     { ruta: "memoria", ico: "🃏", nombre: "Parejas", clase: "c-lila", voz: "Parejas" },
     { ruta: "contar", ico: "🔢", nombre: "Contar", clase: "c-amarillo", voz: "Contar" },
     { ruta: "pintar", ico: "🖍️", nombre: "Pintar", clase: "c-verde", voz: "Pintar" },
+    { ruta: "colorear", ico: "🖌️", nombre: "Colorear", clase: "c-lila2", voz: "Colorear" },
     { ruta: "musica", ico: "🎹", nombre: "Música", clase: "c-naranja", voz: "Música" },
     { ruta: "videos", ico: "📺", nombre: "Vídeos", clase: "c-cian", voz: "Vídeos" },
   ];
@@ -343,21 +344,169 @@
     return v;
   }
 
+
+  /* ---------- Libro para colorear ---------- */
+  const DIBUJOS = window.DIBUJOS_MARIA || [];
+  const PALETA_COLOREAR = ["#ff4d4d", "#ff9a1f", "#ffd400", "#3cc84a", "#22b8cf", "#3d8bff", "#9b5cff", "#ff7ac6", "#9a6233", "#f5d0a9", "#9e9e9e", "#2b2b2b", "#ffffff"];
+  const svgDibujo = (d) => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="dibujo">${d.svg}</svg>`;
+  const guardados = {}; // colores de cada dibujo mientras la web está abierta
+
+  function colorear() {
+    const v = h(`<section>
+      <div class="pregunta"><span>¿Qué quieres colorear?</span></div>
+      <div class="rejilla-dibujos"></div>
+      <div class="acciones"><a class="btn-accion" href="/libro-para-colorear.pdf" download>📥 Libro para imprimir (PDF)</a></div>
+    </section>`);
+    const rej = v.querySelector(".rejilla-dibujos");
+    DIBUJOS.forEach(d => {
+      const b = h(`<button class="miniatura-dibujo" aria-label="${d.nombre}">${svgDibujo(d)}</button>`);
+      pintarGuardado(b.querySelector("svg"), d.id);
+      b.onclick = () => { decir(d.nombre); location.hash = "#/colorear/" + d.id; };
+      rej.appendChild(b);
+    });
+    setTimeout(() => decir("¿Qué quieres colorear?"), 300);
+    return v;
+  }
+
+  function pintarGuardado(svg, id) {
+    const zonas = svg.querySelectorAll(".z");
+    (guardados[id] || []).forEach((c, i) => { if (c && zonas[i]) zonas[i].style.fill = c; });
+  }
+
+  function colorearDibujo(id) {
+    const d = DIBUJOS.find(x => x.id === id);
+    if (!d) return colorear();
+    const v = h(`<section class="colorear">
+      <div class="hoja">${svgDibujo(d)}</div>
+      <div class="paleta"></div>
+      <div class="acciones">
+        <button class="btn-accion" data-a="borrar">🗑️ Empezar de nuevo</button>
+        <button class="btn-accion" data-a="descargar">📥 Descargar mi dibujo</button>
+      </div>
+    </section>`);
+    const svg = v.querySelector("svg"), pal = v.querySelector(".paleta");
+    const zonas = [...svg.querySelectorAll(".z")];
+    guardados[id] = guardados[id] || [];
+    pintarGuardado(svg, id);
+    let color = PALETA_COLOREAR[0];
+
+    zonas.forEach((z, i) => {
+      z.addEventListener("click", () => {
+        z.style.fill = color; guardados[id][i] = color;
+        nota(500 + azar(400), .15);
+      });
+    });
+    PALETA_COLOREAR.forEach((c, i) => {
+      const b = h(`<button class="color-btn${i === 0 ? " activo" : ""}" aria-label="color"></button>`);
+      b.style.background = c;
+      b.onclick = () => { color = c; pal.querySelectorAll(".activo").forEach(x => x.classList.remove("activo")); b.classList.add("activo"); nota(700, .08); };
+      pal.appendChild(b);
+    });
+    v.querySelector('[data-a="borrar"]').onclick = () => { zonas.forEach(z => z.style.fill = ""); guardados[id] = []; nota(300, .2); };
+    v.querySelector('[data-a="descargar"]').onclick = () => descargarDibujo(svg, d.nombre);
+    return v;
+  }
+
+  function descargarDibujo(svg, nombre) {
+    const copia = svg.cloneNode(true);
+    copia.setAttribute("width", "1200"); copia.setAttribute("height", "1200");
+    // Incrustamos los estilos para que la imagen se vea igual fuera de la web
+    copia.querySelectorAll(".z").forEach(z => { z.setAttribute("fill", z.style.fill || "#ffffff"); z.removeAttribute("style"); });
+    copia.querySelectorAll(".z, .l").forEach(z => { z.setAttribute("stroke", "#2f2147"); z.setAttribute("stroke-width", "3.5"); z.setAttribute("stroke-linejoin", "round"); z.setAttribute("stroke-linecap", "round"); });
+    copia.querySelectorAll(".l").forEach(z => z.setAttribute("fill", "none"));
+    const datos = new XMLSerializer().serializeToString(copia);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = 1200; c.height = 1200;
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 1200, 1200);
+      ctx.drawImage(img, 0, 0, 1200, 1200);
+      c.toBlob(b => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b); a.download = `dibujo-de-maria-${nombre.toLowerCase()}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        celebrar("🖼️");
+      }, "image/png");
+    };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(datos);
+  }
+
   /* ---------- Música ---------- */
   const TECLAS = [
     { f: 261.6, c: "#ff4d4d", e: "🐶" }, { f: 293.7, c: "#ff9a1f", e: "🐱" }, { f: 329.6, c: "#ffd400", e: "🐥" },
     { f: 349.2, c: "#3cc84a", e: "🐸" }, { f: 392.0, c: "#3d8bff", e: "🐟" }, { f: 440.0, c: "#9b5cff", e: "🦄" },
     { f: 493.9, c: "#ff7ac6", e: "🐷" }, { f: 523.3, c: "#9a6233", e: "🐻" },
   ];
+  // Melodías tradicionales (dominio público). Números = tecla (0 = primera, 7 = última)
+  const MELODIAS = [
+    { nombre: "Estrellita", ico: "⭐", n: [0,0,4,4,5,5,4, 3,3,2,2,1,1,0, 4,4,3,3,2,2,1, 4,4,3,3,2,2,1, 0,0,4,4,5,5,4, 3,3,2,2,1,1,0] },
+    { nombre: "Los pollitos", ico: "🐥", n: [0,1,2,3,4,4, 5,5,5,5,4, 3,3,3,3,2,2, 1,1,1,1,0] },
+    { nombre: "Martinillo", ico: "🔔", n: [0,1,2,0, 0,1,2,0, 2,3,4, 2,3,4] },
+    { nombre: "Corderito", ico: "🐑", n: [2,1,0,1,2,2,2, 1,1,1, 2,4,4, 2,1,0,1,2,2,2,2, 1,1,2,1,0] },
+    { nombre: "Himno de la alegría", ico: "🎉", n: [2,2,3,4,4,3,2,1,0,0,1,2,2,1,1, 2,2,3,4,4,3,2,1,0,0,1,2,1,0,0] },
+  ];
+
   function musica() {
-    const v = h(`<section><div class="piano"></div></section>`);
-    const p = v.querySelector(".piano");
-    TECLAS.forEach(t => {
+    const v = h(`<section class="musica">
+      <div class="piano"></div>
+      <div class="partitura oculto"><div class="bolas"></div></div>
+      <div class="melodias"></div>
+    </section>`);
+    const p = v.querySelector(".piano"), part = v.querySelector(".partitura"), bolas = v.querySelector(".bolas"), lista = v.querySelector(".melodias");
+    const teclas = [];
+    let actual = null, pos = 0, tocando = [];
+
+    const sonar = (i) => {
+      nota(TECLAS[i].f, .8, "triangle");
+      teclas[i].classList.add("sonando"); setTimeout(() => teclas[i].classList.remove("sonando"), 200);
+    };
+    const marcar = () => {
+      teclas.forEach(t => t.classList.remove("siguiente"));
+      [...bolas.children].forEach((b, i) => { b.classList.toggle("hecha", i < pos); b.classList.toggle("ahora", i === pos); });
+      const ahora = bolas.children[pos];
+      if (ahora) { ahora.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); teclas[actual.n[pos]].classList.add("siguiente"); }
+    };
+    const parar = () => { tocando.forEach(clearTimeout); tocando = []; };
+
+    TECLAS.forEach((t, i) => {
       const b = h(`<button class="tecla">${t.e}</button>`);
       b.style.background = t.c;
-      b.onpointerdown = () => { nota(t.f, .8, "triangle"); b.classList.add("sonando"); setTimeout(() => b.classList.remove("sonando"), 200); };
-      p.appendChild(b);
+      b.onpointerdown = () => {
+        sonar(i);
+        if (actual && actual.n[pos] === i) {
+          pos++;
+          if (pos >= actual.n.length) { marcar(); setTimeout(() => celebrar("🎶"), 400); setTimeout(() => { pos = 0; marcar(); }, 2400); }
+          else marcar();
+        }
+      };
+      teclas.push(b); p.appendChild(b);
     });
+
+    const elegir = (m, boton) => {
+      parar(); actual = m; pos = 0;
+      lista.querySelectorAll(".activa").forEach(x => x.classList.remove("activa")); boton.classList.add("activa");
+      bolas.innerHTML = m.n.map(i => `<span style="background:${TECLAS[i].c}">${TECLAS[i].e}</span>`).join("");
+      part.classList.remove("oculto");
+      marcar();
+    };
+    MELODIAS.forEach(m => {
+      const b = h(`<button class="btn-accion">${m.ico} ${m.nombre}</button>`);
+      b.onclick = () => { decir(m.nombre); elegir(m, b); };
+      lista.appendChild(b);
+    });
+    const escuchar = h(`<button class="btn-accion">👂 Escuchar</button>`);
+    escuchar.onclick = () => {
+      if (!actual) return;
+      parar(); pos = 0; marcar();
+      actual.n.forEach((i, k) => tocando.push(setTimeout(() => {
+        sonar(i);
+        [...bolas.children].forEach((b, j) => b.classList.toggle("ahora", j === k));
+        bolas.children[k].scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      }, k * 420)));
+      tocando.push(setTimeout(marcar, actual.n.length * 420 + 300));
+    };
+    lista.appendChild(escuchar);
+    v._limpiar = parar;
     return v;
   }
 
@@ -383,7 +532,7 @@
   }
 
   /* ---------- Navegación ---------- */
-  const RUTAS = { colores, formas, memoria, contar, pintar, musica, videos };
+  const RUTAS = { colores, formas, memoria, contar, pintar, colorear, musica, videos };
   let vistaActual = null;
   function navegar() {
     const partes = location.hash.replace(/^#\/?/, "").split("/");
@@ -392,6 +541,7 @@
     if ("speechSynthesis" in window) speechSynthesis.cancel();
     let vista;
     if (ruta === "video" && extra) vista = video(extra);
+    else if (ruta === "colorear" && extra) vista = colorearDibujo(extra);
     else if (RUTAS[ruta]) vista = RUTAS[ruta]();
     else vista = portada();
     btnCasa.classList.toggle("oculto", !ruta);
@@ -401,7 +551,8 @@
   }
   btnCasa.onclick = () => {
     const ruta = location.hash.replace(/^#\/?/, "").split("/")[0];
-    location.hash = ruta === "video" ? "#/videos" : "#/";
+    const extra = location.hash.replace(/^#\/?/, "").split("/")[1];
+    location.hash = ruta === "video" ? "#/videos" : (ruta === "colorear" && extra) ? "#/colorear" : "#/";
   };
   window.addEventListener("hashchange", navegar);
   navegar();

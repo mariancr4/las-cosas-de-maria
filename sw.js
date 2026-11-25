@@ -1,8 +1,8 @@
 /* Service worker: permite instalar la web como app y jugar sin conexión.
    Cambia VERSION cada vez que se modifiquen archivos para forzar la actualización. */
-const VERSION = "maria-v2";
+const VERSION = "maria-v3";
 const ARCHIVOS = [
-  "/", "/index.html", "/styles.css", "/app.js", "/videos.js", "/manifest.webmanifest",
+  "/", "/index.html", "/styles.css", "/app.js", "/videos.js", "/dibujos.js", "/libro-para-colorear.pdf", "/manifest.webmanifest",
   "/img/icono-192.png", "/img/icono-512.png", "/img/favicon.png", "/img/apple-touch-icon.png",
 ];
 

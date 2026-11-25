@@ -393,3 +393,56 @@ main { padding-top: 18px; }
 @media (prefers-reduced-motion: reduce) {
   body::before, body::after, .tarjeta, .opcion, .cosas, .aviso, .miniatura, .lienzo { animation: none; }
 }
+
+/* ---------- Colorear ---------- */
+.c-lila2 { background: linear-gradient(145deg, #ffb3e6 0%, #c05cff 100%); }
+.dibujo .z { fill: #fff; stroke: #2f2147; stroke-width: 3.5; stroke-linejoin: round; cursor: pointer; transition: fill .15s; }
+.dibujo .l { fill: none; stroke: #2f2147; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.rejilla-dibujos { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.miniatura-dibujo {
+  aspect-ratio: 1; background: #fff; border-radius: var(--radio); box-shadow: var(--sombra); padding: 12%;
+  transition: transform .2s cubic-bezier(.3,1.6,.6,1); animation: entrar .45s cubic-bezier(.3,1.5,.6,1) both;
+}
+.miniatura-dibujo:hover { transform: translateY(-5px) rotate(-1deg); }
+.miniatura-dibujo svg { width: 100%; height: 100%; pointer-events: none; }
+.colorear { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.hoja { background: #fff; border-radius: var(--radio); box-shadow: var(--sombra); padding: 4%; width: min(100%, 62vh); aspect-ratio: 1; }
+.hoja svg { width: 100%; height: 100%; display: block; }
+.acciones { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 18px; }
+.colorear .acciones { margin-top: 0; }
+.btn-accion {
+  font: inherit; font-weight: 800; font-size: 1.1rem; text-decoration: none; color: var(--texto);
+  background: #fff; border-radius: 999px; padding: 12px 22px; box-shadow: 0 5px 0 rgba(47,33,71,.12), var(--sombra-suave);
+}
+.btn-accion:active { transform: translateY(3px); }
+@media (orientation: landscape) and (max-height: 600px) {
+  .colorear { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .hoja { width: calc(100vh - 110px); }
+  .colorear .paleta { width: 150px; }
+  .colorear .acciones { flex-direction: column; }
+  .btn-accion { font-size: .9rem; padding: 8px 14px; }
+}
+
+/* ---------- Melodías del piano ---------- */
+.musica { display: flex; flex-direction: column; gap: 14px; }
+.musica .piano { height: 46vh; }
+.tecla { position: relative; transition: transform .1s; }
+.tecla.siguiente { animation: latido .8s ease-in-out infinite; box-shadow: 0 0 0 6px #fff, 0 0 0 10px #2f2147, var(--sombra); z-index: 1; }
+.partitura { background: rgba(255,255,255,.85); border-radius: var(--radio); box-shadow: var(--sombra-suave); padding: 12px; overflow-x: auto; scrollbar-width: none; }
+.partitura::-webkit-scrollbar { display: none; }
+.bolas { display: flex; gap: 8px; width: max-content; padding: 6px 40vw 6px 6px; }
+.bolas span {
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; flex: none;
+  box-shadow: 0 4px 0 rgba(47,33,71,.15); transition: transform .2s, opacity .2s;
+}
+.bolas span.hecha { opacity: .3; transform: scale(.8); }
+.bolas span.ahora { transform: scale(1.3); box-shadow: 0 0 0 4px #fff, 0 0 0 7px #2f2147; }
+.melodias { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.melodias .btn-accion.activa { background: var(--g-lila); color: #fff; }
+@keyframes latido { 50% { transform: translateY(6px); filter: brightness(1.25); } }
+@media (orientation: landscape) and (max-height: 600px) {
+  .musica .piano { height: calc(100vh - 230px); }
+  .bolas span { width: 36px; height: 36px; font-size: 1rem; }
+  .partitura { padding: 6px; }
+  .melodias .btn-accion { font-size: .85rem; padding: 6px 12px; }
+}
