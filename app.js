@@ -29,11 +29,28 @@
   const nombreAudio = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+  // Frases grabadas juntas en un solo MP3 («sprite»): { archivo, frases: { nombre: [inicio, fin] } }
+  const SPRITES = window.AUDIOS_SPRITES || [];
+  const enSprite = (n) => { for (const sp of SPRITES) if (sp.frases[n]) return { archivo: sp.archivo, tramo: sp.frases[n] }; return null; };
+
+  // Si no hay grabación, elegimos la voz española más natural que tenga el aparato
   let vozES = null;
+  const puntuarVoz = (v) => {
+    const n = (v.name || "").toLowerCase(), l = (v.lang || "").toLowerCase().replace("_", "-");
+    if (!l.startsWith("es")) return -1;
+    let p = 0;
+    if (l === "es-es") p += 30; else if (l === "es-mx" || l === "es-us") p += 15;
+    if (/premium|mejorad|enhanced|neural|natural/.test(n)) p += 50;
+    if (/google/.test(n)) p += 35;
+    if (/m[oó]nica|paulina|marisol|elvira|helena|laura|lucia|luc[ií]a|paloma/.test(n)) p += 25;
+    if (/compact|eloquence|grandma|grandpa|abuel|bad news|bells|bubbles|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|bahh|boing|cellos|fred|junior|kathy|ralph|rocko|shelley|flo|reed|sandy|eddy/.test(n)) p -= 60;
+    if (v.localService) p += 5;
+    return p;
+  };
   const cargarVoz = () => {
     if (!("speechSynthesis" in window)) return;
-    const voces = speechSynthesis.getVoices();
-    vozES = voces.find(v => v.lang === "es-ES") || voces.find(v => v.lang && v.lang.startsWith("es")) || null;
+    const voces = speechSynthesis.getVoices().filter(v => puntuarVoz(v) >= 0);
+    vozES = voces.sort((a, b) => puntuarVoz(b) - puntuarVoz(a))[0] || null;
   };
   if ("speechSynthesis" in window) { cargarVoz(); speechSynthesis.onvoiceschanged = cargarVoz; }
   const vozNavegador = (texto) => {
@@ -49,7 +66,7 @@
   const buffers = new Map();
   const cargarBuffer = (n) => {
     if (!buffers.has(n)) {
-      const p = fetch("/audio/" + n + ".mp3")
+      const p = fetch(n.startsWith("/") ? n : "/audio/" + n + ".mp3")
         .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
         .then(b => new Promise((ok, mal) => ctxAudio().decodeAudioData(b, ok, mal)));
       p.catch(() => buffers.delete(n));
@@ -72,7 +89,7 @@
         src.connect(ctx.destination); src.start(0);
       }
     } catch (e) {}
-    if (!precargado) { precargado = true; AUDIOS.forEach(n => cargarBuffer(n).catch(() => {})); }
+    if (!precargado) { precargado = true; AUDIOS.forEach(n => cargarBuffer(n).catch(() => {})); SPRITES.forEach(sp => cargarBuffer(sp.archivo).catch(() => {})); }
   };
   ["pointerdown", "touchend", "click", "keydown"].forEach(ev => document.addEventListener(ev, desbloquear, true));
   // Al volver a la app (o tras una llamada) iOS deja el audio «interrumpido»
@@ -90,6 +107,18 @@
     if (!sonido) return;
     callar();
     const n = nombreAudio(texto);
+    const sp = !AUDIOS.has(n) && enSprite(n);
+    if (sp) {
+      const mio = turno;
+      cargarBuffer(sp.archivo).then(buf => {
+        if (mio !== turno) return;
+        const ctx = ctxAudio(), src = ctx.createBufferSource();
+        src.buffer = buf; src.connect(ctx.destination);
+        src.start(0, sp.tramo[0], sp.tramo[1] - sp.tramo[0]);
+        fuente = src;
+      }).catch(() => { if (mio === turno) vozNavegador(texto); });
+      return;
+    }
     if (!AUDIOS.has(n)) return vozNavegador(texto);
     const mio = turno;
     cargarBuffer(n).then(buf => {

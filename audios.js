@@ -1,4 +1,4 @@
-/* Frases con voz grabada (archivos de la carpeta audio/). */
+/* Frases con voz grabada (carpeta audio/). Se genera automáticamente. */
 window.AUDIOS_MARIA = [
   "aprender",
   "bravo-maria",
@@ -14,4 +14,152 @@ window.AUDIOS_MARIA = [
   "pintar",
   "que-lista-eres",
   "videos",
+];
+/* Frases grabadas juntas en un MP3: tramos [inicio, fin] en segundos */
+window.AUDIOS_SPRITES = [
+ {
+  "archivo": "/audio/frases-1.mp3",
+  "frases": {
+   "jugar": [
+    0.03,
+    0.67
+   ],
+   "crear": [
+    0.91,
+    1.51
+   ],
+   "ver": [
+    1.78,
+    2.32
+   ],
+   "colorear": [
+    2.59,
+    3.32
+   ],
+   "fotos": [
+    3.62,
+    4.36
+   ],
+   "que-quieres-colorear": [
+    4.66,
+    5.86
+   ],
+   "busca-las-parejas": [
+    6.03,
+    7.33
+   ],
+   "cuantos-hay": [
+    7.53,
+    8.32
+   ],
+   "vamos-a-contarlos-juntas": [
+    8.46,
+    10.11
+   ],
+   "uno": [
+    10.29,
+    10.86
+   ],
+   "dos": [
+    11.01,
+    11.8
+   ],
+   "tres": [
+    11.95,
+    12.61
+   ],
+   "cuatro": [
+    12.76,
+    13.46
+   ],
+   "cinco": [
+    13.63,
+    14.32
+   ],
+   "seis": [
+    14.38,
+    15.22
+   ],
+   "siete": [
+    15.28,
+    16.08
+   ],
+   "ocho": [
+    16.19,
+    16.84
+   ],
+   "nueve": [
+    16.91,
+    17.63
+   ],
+   "diez": [
+    17.7,
+    18.23
+   ],
+   "haz-el-puzle": [
+    18.63,
+    19.57
+   ],
+   "de-quien-es-esta-sombra": [
+    19.71,
+    21.17
+   ],
+   "decora-la-tarta": [
+    21.31,
+    22.47
+   ],
+   "toca-del-mas-pequeno-al-mas-grande": [
+    22.65,
+    25.02
+   ],
+   "explota-las-burbujas": [
+    25.19,
+    26.79
+   ],
+   "une-los-puntos": [
+    26.95,
+    28.12
+   ],
+   "lleva-al-pollito-con-su-mama": [
+    28.24,
+    30.05
+   ],
+   "a-cepillar": [
+    30.22,
+    31.13
+   ],
+   "burbujas": [
+    31.34,
+    32.28
+   ],
+   "puzle": [
+    32.42,
+    33.04
+   ],
+   "sombras": [
+    33.21,
+    34.09
+   ],
+   "tamanos": [
+    34.19,
+    35.06
+   ],
+   "letras": [
+    35.15,
+    35.94
+   ],
+   "tarta": [
+    36.11,
+    36.74
+   ],
+   "laberintos": [
+    36.86,
+    37.86
+   ],
+   "dientes": [
+    37.95,
+    38.88
+   ]
+  }
+ }
 ];
