@@ -446,3 +446,14 @@ main { padding-top: 18px; }
   .partitura { padding: 6px; }
   .melodias .btn-accion { font-size: .85rem; padding: 6px 12px; }
 }
+
+/* Mis dibujos cargados */
+.miniatura-dibujo.propia { padding: 6%; overflow: hidden; }
+.miniatura-dibujo.propia img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.miniatura-dibujo.anadir {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer;
+  background: rgba(255,255,255,.6); border: 4px dashed #c9a8ff; box-shadow: none; font-weight: 800; color: #8b5cff;
+}
+.miniatura-dibujo.anadir span { font-size: 3rem; line-height: 1; }
+.hoja-lienzo { aspect-ratio: 1; height: auto; display: grid; place-items: center; }
+.hoja-lienzo canvas { width: 100%; height: 100%; object-fit: contain; touch-action: none; display: block; cursor: pointer; }

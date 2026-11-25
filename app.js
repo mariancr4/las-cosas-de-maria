@@ -364,8 +364,163 @@
       b.onclick = () => { decir(d.nombre); location.hash = "#/colorear/" + d.id; };
       rej.appendChild(b);
     });
+    // Dibujos que se cargan desde este dispositivo (se guardan solo aquí, no en la web)
+    misDibujos.listar().then(lista => {
+      lista.forEach(d => {
+        const b = h(`<button class="miniatura-dibujo propia" aria-label="dibujo"><img alt=""></button>`);
+        b.querySelector("img").src = URL.createObjectURL(d.coloreado || d.original);
+        b.onclick = () => { location.hash = "#/colorear/mio-" + d.id; };
+        rej.appendChild(b);
+      });
+      const mas = h(`<label class="miniatura-dibujo anadir" aria-label="Añadir dibujo"><span>➕</span><small>Añadir dibujo</small><input type="file" accept="image/*" multiple hidden></label>`);
+      mas.querySelector("input").onchange = async (e) => {
+        for (const f of e.target.files) await misDibujos.guardar(await prepararLamina(f));
+        location.hash = "#/colorear"; navegar();
+      };
+      rej.appendChild(mas);
+    }).catch(() => {});
     setTimeout(() => decir("¿Qué quieres colorear?"), 300);
     return v;
+  }
+
+  /* ---------- Mis dibujos (guardados en este dispositivo con IndexedDB) ---------- */
+  const misDibujos = (() => {
+    const abrir = () => new Promise((ok, mal) => {
+      const r = indexedDB.open("maria-dibujos", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("dibujos", { keyPath: "id", autoIncrement: true });
+      r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error);
+    });
+    const tx = async (modo, fn) => {
+      const db = await abrir();
+      return new Promise((ok, mal) => {
+        const t = db.transaction("dibujos", modo), st = t.objectStore("dibujos");
+        const r = fn(st); t.oncomplete = () => ok(r && r.result); t.onerror = () => mal(t.error);
+      });
+    };
+    return {
+      listar: () => tx("readonly", st => st.getAll()),
+      leer: (id) => tx("readonly", st => st.get(id)),
+      guardar: (d) => tx("readwrite", st => st.put(d)),
+      borrar: (id) => tx("readwrite", st => st.delete(id)),
+    };
+  })();
+
+  // Convierte la imagen a blanco y negro limpio para que el relleno funcione bien
+  function prepararLamina(archivo) {
+    return new Promise((ok, mal) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const d = ctx.getImageData(0, 0, c.width, c.height), px = d.data;
+        for (let i = 0; i < px.length; i += 4) {
+          const luz = px[i] * .3 + px[i + 1] * .59 + px[i + 2] * .11;
+          const v = luz < 150 ? 0 : 255; px[i] = px[i + 1] = px[i + 2] = v; px[i + 3] = 255;
+        }
+        ctx.putImageData(d, 0, 0);
+        URL.revokeObjectURL(img.src);
+        c.toBlob(b => ok({ original: b, coloreado: null, fecha: Date.now() }), "image/png");
+      };
+      img.onerror = mal;
+      img.src = URL.createObjectURL(archivo);
+    });
+  }
+
+  function colorearMio(id) {
+    const v = h(`<section class="colorear">
+      <div class="hoja hoja-lienzo"><canvas></canvas></div>
+      <div class="paleta"></div>
+      <div class="acciones">
+        <button class="btn-accion" data-a="deshacer">↩️ Deshacer</button>
+        <button class="btn-accion" data-a="borrar">🗑️ Empezar de nuevo</button>
+        <button class="btn-accion" data-a="descargar">📥 Descargar mi dibujo</button>
+        <button class="btn-accion" data-a="quitar">❌ Quitar dibujo</button>
+      </div>
+    </section>`);
+    const lienzo = v.querySelector("canvas"), pal = v.querySelector(".paleta");
+    const ctx = lienzo.getContext("2d", { willReadFrequently: true });
+    let color = PALETA_COLOREAR[0], dibujo = null, lineas = null, historial = [];
+
+    const cargarImg = (blob) => new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.src = URL.createObjectURL(blob); });
+    misDibujos.leer(id).then(async d => {
+      if (!d) { location.hash = "#/colorear"; return; }
+      dibujo = d;
+      const base = await cargarImg(d.original);
+      lienzo.width = base.width; lienzo.height = base.height;
+      ctx.drawImage(base, 0, 0);
+      lineas = ctx.getImageData(0, 0, lienzo.width, lienzo.height).data.slice(); // líneas negras de la lámina
+      if (d.coloreado) ctx.drawImage(await cargarImg(d.coloreado), 0, 0);
+      v.querySelector(".hoja").style.aspectRatio = `${base.width} / ${base.height}`;
+    });
+
+    const guardar = () => lienzo.toBlob(b => { dibujo.coloreado = b; misDibujos.guardar(dibujo); }, "image/png");
+
+    lienzo.addEventListener("pointerdown", (e) => {
+      if (!lineas) return;
+      const r = lienzo.getBoundingClientRect();
+      const x = Math.floor((e.clientX - r.left) * lienzo.width / r.width);
+      const y = Math.floor((e.clientY - r.top) * lienzo.height / r.height);
+      const img = ctx.getImageData(0, 0, lienzo.width, lienzo.height);
+      historial.push(img.data.slice()); if (historial.length > 15) historial.shift();
+      if (rellenar(img, lineas, x, y, color)) { ctx.putImageData(img, 0, 0); nota(500 + azar(400), .15); guardar(); }
+      else historial.pop();
+    });
+
+    PALETA_COLOREAR.forEach((c, i) => {
+      const b = h(`<button class="color-btn${i === 0 ? " activo" : ""}" aria-label="color"></button>`);
+      b.style.background = c;
+      b.onclick = () => { color = c; pal.querySelectorAll(".activo").forEach(x => x.classList.remove("activo")); b.classList.add("activo"); nota(700, .08); };
+      pal.appendChild(b);
+    });
+    v.querySelector('[data-a="deshacer"]').onclick = () => {
+      const prev = historial.pop(); if (!prev) return;
+      ctx.putImageData(new ImageData(prev, lienzo.width, lienzo.height), 0, 0); guardar();
+    };
+    v.querySelector('[data-a="borrar"]').onclick = () => {
+      if (!lineas) return;
+      ctx.putImageData(new ImageData(lineas.slice(), lienzo.width, lienzo.height), 0, 0); historial = [];
+      dibujo.coloreado = null; misDibujos.guardar(dibujo); nota(300, .2);
+    };
+    v.querySelector('[data-a="descargar"]').onclick = () => lienzo.toBlob(b => {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "dibujo-de-maria.png";
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); celebrar("🖼️");
+    }, "image/png");
+    // Para quitar un dibujo hay que mantener pulsado (así María no lo borra sin querer)
+    const quitar = v.querySelector('[data-a="quitar"]');
+    let t = null;
+    quitar.onclick = () => { quitar.textContent = "❌ Mantén pulsado para quitar"; };
+    quitar.onpointerdown = () => { t = setTimeout(async () => { await misDibujos.borrar(id); location.hash = "#/colorear"; }, 1200); };
+    quitar.onpointerup = quitar.onpointerleave = () => clearTimeout(t);
+    return v;
+  }
+
+  // Relleno por inundación: pinta la zona tocada hasta las líneas negras
+  function rellenar(img, lineas, x, y, hex) {
+    const w = img.width, hgt = img.height, px = img.data;
+    if (x < 0 || y < 0 || x >= w || y >= hgt) return false;
+    const esLinea = (i) => lineas[i] < 128;
+    const ini = (y * w + x) * 4;
+    if (esLinea(ini)) return false;
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    const visto = new Uint8Array(w * hgt);
+    const pila = [x, y];
+    while (pila.length) {
+      const cy = pila.pop(), cx = pila.pop();
+      let lx = cx;
+      while (lx >= 0 && !visto[cy * w + lx] && !esLinea((cy * w + lx) * 4)) lx--;
+      lx++;
+      let arriba = false, abajo = false;
+      for (let xx = lx; xx < w; xx++) {
+        const k = cy * w + xx;
+        if (visto[k] || esLinea(k * 4)) break;
+        visto[k] = 1; const i = k * 4; px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = 255;
+        if (cy > 0) { const ka = k - w, libre = !visto[ka] && !esLinea(ka * 4); if (libre && !arriba) { pila.push(xx, cy - 1); arriba = true; } else if (!libre) arriba = false; }
+        if (cy < hgt - 1) { const kb = k + w, libre = !visto[kb] && !esLinea(kb * 4); if (libre && !abajo) { pila.push(xx, cy + 1); abajo = true; } else if (!libre) abajo = false; }
+      }
+    }
+    return true;
   }
 
   function pintarGuardado(svg, id) {
@@ -541,6 +696,7 @@
     if ("speechSynthesis" in window) speechSynthesis.cancel();
     let vista;
     if (ruta === "video" && extra) vista = video(extra);
+    else if (ruta === "colorear" && extra && extra.startsWith("mio-")) vista = colorearMio(Number(extra.slice(4)));
     else if (ruta === "colorear" && extra) vista = colorearDibujo(extra);
     else if (RUTAS[ruta]) vista = RUTAS[ruta]();
     else vista = portada();
