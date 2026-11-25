@@ -368,27 +368,111 @@
       rej.appendChild(b);
     });
     // Dibujos que se cargan desde este dispositivo (se guardan solo aquí, no en la web)
+    // Dibujos y carpetas que se cargan desde este dispositivo (se guardan solo aquí, no en la web)
     misDibujos.listar().then(lista => {
-      lista.forEach(d => {
-        const b = h(`<button class="miniatura-dibujo propia" aria-label="dibujo"><img alt=""></button>`);
-        b.querySelector("img").src = URL.createObjectURL(d.coloreado || d.original);
-        b.onclick = () => { location.hash = "#/colorear/mio-" + d.id; };
-        rej.appendChild(b);
-      });
-      const mas = h(`<label class="miniatura-dibujo anadir" aria-label="Añadir dibujo"><span>➕</span><small>Añadir dibujo</small><input type="file" accept="image/*,application/pdf" multiple hidden></label>`);
-      mas.querySelector("input").onchange = async (e) => {
-        for (const f of e.target.files) {
-          try {
-            if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
-              for (const img of await pdfAImagenes(f)) await misDibujos.guardar(await prepararLamina(img));
-            } else await misDibujos.guardar(await prepararLamina(f));
-          } catch (err) { console.warn("No se pudo cargar", f.name, err); }
-        }
-        location.hash = "#/colorear"; navegar();
-      };
-      rej.appendChild(mas);
+      const sueltos = lista.filter(d => !d.categoria);
+      const cats = {};
+      lista.filter(d => d.categoria).forEach(d => (cats[d.categoria] = cats[d.categoria] || []).push(d));
+      Object.keys(cats).sort().forEach(c => rej.appendChild(tarjetaCarpeta(c, cats[c], "#/colorear/cat/" + encodeURIComponent(c))));
+      sueltos.forEach(d => rej.appendChild(miniaturaMia(d)));
+      rej.appendChild(botonImportar("➕", "Añadir dibujo", false));
+      rej.appendChild(botonImportar("📂", "Importar carpeta", "carpeta"));
+      rej.appendChild(botonImportar("🗜️", "Importar .zip", "zip"));
     }).catch(() => {});
     setTimeout(() => decir("¿Qué quieres colorear?"), 300);
+    return v;
+  }
+
+
+  function miniaturaMia(d) {
+    const b = h(`<button class="miniatura-dibujo propia" aria-label="dibujo"><img alt="" loading="lazy"></button>`);
+    b.querySelector("img").src = URL.createObjectURL(d.coloreado || d.miniatura || d.original);
+    b.onclick = () => { location.hash = "#/colorear/mio-" + d.id; };
+    return b;
+  }
+  function tarjetaCarpeta(nombre, items, destino) {
+    const muestra = items[0];
+    const b = h(`<button class="miniatura-dibujo carpeta"><img alt=""><span class="nombre-carpeta">📁 ${nombre.replace(/[<>&]/g, "")}</span><span class="cuenta">${items.length}</span></button>`);
+    if (muestra) b.querySelector("img").src = URL.createObjectURL(muestra.miniatura || muestra.original);
+    b.onclick = () => { decir(nombre); location.hash = destino; };
+    return b;
+  }
+  function botonImportar(ico, texto, modo) {
+    const accept = modo === "zip" ? ".zip,application/zip" : "image/*,application/pdf";
+    const extra = modo === "carpeta" ? "webkitdirectory directory" : "multiple";
+    const b = h(`<label class="miniatura-dibujo anadir"><span>${ico}</span><small>${texto}</small><input type="file" accept="${accept}" ${extra} hidden></label>`);
+    b.querySelector("input").onchange = async (e) => {
+      const lista = [];
+      if (modo === "zip") {
+        await cargarScript("/lib/jszip.min.js");
+        for (const f of e.target.files) {
+          const zip = await JSZip.loadAsync(f);
+          for (const [ruta, ent] of Object.entries(zip.files)) {
+            if (ent.dir || /(^|\/)(__MACOSX|\.)/.test(ruta)) continue;
+            if (!/\.(pdf|png|jpe?g|webp|gif)$/i.test(ruta)) continue;
+            const blob = await ent.async("blob");
+            const tipo = /\.pdf$/i.test(ruta) ? "application/pdf" : "image/" + ruta.split(".").pop().toLowerCase().replace("jpg", "jpeg");
+            lista.push({ ruta, archivo: new File([blob], ruta.split("/").pop(), { type: tipo }) });
+          }
+        }
+      } else {
+        for (const f of e.target.files) lista.push({ ruta: f.webkitRelativePath || f.name, archivo: f });
+      }
+      await importarLaminas(lista);
+      location.hash = "#/colorear"; navegar();
+    };
+    return b;
+  }
+  const cargarScript = (src) => new Promise((ok, mal) => {
+    if (document.querySelector(`script[src="${src}"]`)) return ok();
+    const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = mal; document.head.appendChild(sc);
+  });
+
+  // Importa archivos respetando las carpetas: Carpeta/Subcarpeta/lámina.pdf
+  async function importarLaminas(lista) {
+    lista = lista.filter(x => /\.(pdf|png|jpe?g|webp|gif)$/i.test(x.archivo.name) || /^image\//.test(x.archivo.type));
+    if (!lista.length) return;
+    const aviso = h(`<div class="ayuda-instalar"><div class="caja"><div class="ico">⏳</div><p>Guardando dibujos… <b class="n">0</b> de ${lista.length}</p></div></div>`);
+    document.body.appendChild(aviso);
+    let n = 0;
+    for (const { ruta, archivo } of lista) {
+      const partes = ruta.split("/").filter(Boolean);
+      const categoria = partes.length >= 2 ? partes[0] : "";
+      const sub = partes.length >= 3 ? partes.slice(1, -1).join(" · ") : "";
+      try {
+        const imgs = archivo.type === "application/pdf" || /\.pdf$/i.test(archivo.name) ? await pdfAImagenes(archivo) : [archivo];
+        for (const img of imgs) {
+          const d = await prepararLamina(img);
+          d.categoria = categoria; d.sub = sub; d.nombre = archivo.name.replace(/\.[^.]+$/, "");
+          await misDibujos.guardar(d);
+        }
+      } catch (err) { console.warn("No se pudo cargar", ruta, err); }
+      aviso.querySelector(".n").textContent = ++n;
+    }
+    aviso.remove();
+  }
+
+  function colorearCarpeta(cat, sub) {
+    const v = h(`<section>
+      <div class="pregunta"><span>📁 ${(sub || cat).replace(/[<>&]/g, "")}</span></div>
+      <div class="rejilla-dibujos"></div>
+      <div class="acciones"><button class="btn-accion quitar-carpeta">❌ Quitar esta carpeta</button></div>
+    </section>`);
+    const rej = v.querySelector(".rejilla-dibujos");
+    misDibujos.listar().then(lista => {
+      const items = lista.filter(d => d.categoria === cat && (sub === undefined || d.sub === sub));
+      if (sub === undefined) {
+        const subs = {};
+        items.filter(d => d.sub).forEach(d => (subs[d.sub] = subs[d.sub] || []).push(d));
+        Object.keys(subs).sort().forEach(s => rej.appendChild(tarjetaCarpeta(s, subs[s], `#/colorear/cat/${encodeURIComponent(cat)}/${encodeURIComponent(s)}`)));
+        items.filter(d => !d.sub).forEach(d => rej.appendChild(miniaturaMia(d)));
+      } else items.forEach(d => rej.appendChild(miniaturaMia(d)));
+      // Quitar: hay que mantener pulsado para que María no lo borre sin querer
+      const q = v.querySelector(".quitar-carpeta"); let t = null;
+      q.onclick = () => { q.textContent = "❌ Mantén pulsado para quitar"; };
+      q.onpointerdown = () => { t = setTimeout(async () => { for (const d of items) await misDibujos.borrar(d.id); location.hash = "#/colorear"; }, 1500); };
+      q.onpointerup = q.onpointerleave = () => clearTimeout(t);
+    });
     return v;
   }
 
@@ -418,11 +502,7 @@
   let pdfjs = null;
   async function pdfAImagenes(archivo) {
     if (!pdfjs) {
-      await new Promise((ok, mal) => {
-        const sc = document.createElement("script");
-        sc.src = "/lib/pdf.min.js";
-        sc.onload = ok; sc.onerror = mal; document.head.appendChild(sc);
-      });
+      await cargarScript("/lib/pdf.min.js");
       pdfjs = window.pdfjsLib;
       pdfjs.GlobalWorkerOptions.workerSrc = "/lib/pdf.worker.min.js";
     }
@@ -456,7 +536,12 @@
         }
         ctx.putImageData(d, 0, 0);
         URL.revokeObjectURL(img.src);
-        c.toBlob(b => ok({ original: b, coloreado: null, fecha: Date.now() }), "image/png");
+        c.toBlob(b => {
+          const m = document.createElement("canvas"), km = 300 / Math.max(c.width, c.height);
+          m.width = Math.round(c.width * km); m.height = Math.round(c.height * km);
+          m.getContext("2d").drawImage(c, 0, 0, m.width, m.height);
+          m.toBlob(mb => ok({ original: b, miniatura: mb, coloreado: null, fecha: Date.now() }), "image/jpeg", .8);
+        }, "image/png");
       };
       img.onerror = mal;
       img.src = URL.createObjectURL(archivo);
@@ -755,6 +840,7 @@
     if ("speechSynthesis" in window) speechSynthesis.cancel();
     let vista;
     if (ruta === "video" && extra) vista = video(extra);
+    else if (ruta === "colorear" && extra === "cat" && partes[2]) vista = colorearCarpeta(decodeURIComponent(partes[2]), partes[3] !== undefined ? decodeURIComponent(partes[3]) : undefined);
     else if (ruta === "colorear" && extra && extra.startsWith("mio-")) vista = colorearMio(Number(extra.slice(4)));
     else if (ruta === "colorear" && extra) vista = colorearDibujo(extra);
     else if (RUTAS[ruta]) vista = RUTAS[ruta]();
@@ -766,8 +852,9 @@
   }
   btnCasa.onclick = () => {
     const ruta = location.hash.replace(/^#\/?/, "").split("/")[0];
-    const extra = location.hash.replace(/^#\/?/, "").split("/")[1];
-    location.hash = ruta === "video" ? "#/videos" : (ruta === "colorear" && extra) ? "#/colorear" : "#/";
+    const partes = location.hash.replace(/^#\/?/, "").split("/");
+    if (ruta === "colorear" && partes[1] === "cat" && partes.length > 3) { location.hash = "#/" + partes.slice(0, 3).join("/"); return; }
+    location.hash = ruta === "video" ? "#/videos" : (ruta === "colorear" && partes[1]) ? "#/colorear" : "#/";
   };
   window.addEventListener("hashchange", navegar);
   navegar();
