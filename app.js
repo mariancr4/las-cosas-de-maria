@@ -225,11 +225,17 @@
   const todasSecciones = () => SECCIONES.concat((window.JUEGOS_EXTRA || []).map(j => ({ ...j, voz: j.nombre })));
   const seccion = (ruta) => todasSecciones().find(s => s.ruta === ruta);
   const categoriaDe = (ruta) => CATEGORIAS.find(c => c.rutas.includes(ruta)) || CATEGORIAS[1];
+  // Ajustes de la zona para mayores (se comparten por la hoja de Google; copia en el dispositivo)
+  let ajustes = {};
+  try { ajustes = JSON.parse(localStorage.getItem("ajustes-hoja") || "{}") || {}; } catch (e) {}
+  const guardarAjustes = (a) => { ajustes = a || {}; try { localStorage.setItem("ajustes-hoja", JSON.stringify(ajustes)); } catch (e) {} };
+  const listaAjuste = (n) => new Set(String(ajustes[n] || "").split(",").filter(Boolean));
   const seccionesDe = (cat) => {
     const conocidas = new Set(CATEGORIAS.flatMap(c => c.rutas));
     const lista = cat.rutas.map(seccion).filter(Boolean);
     if (cat.id === "jugar") todasSecciones().forEach(s => { if (!conocidas.has(s.ruta)) lista.push(s); });
-    return lista;
+    const ocultos = listaAjuste("ocultos");
+    return lista.filter(s => !ocultos.has(s.ruta));
   };
 
   // «Lo último»: los 3 juegos usados más recientemente
@@ -256,6 +262,9 @@
       <div class="acciones instalar-zona"></div>
     </section>`);
     botonInstalar(v.querySelector(".instalar-zona"));
+    const candado = h(`<button class="btn-accion btn-instalar btn-mayores">🔒 Mayores</button>`);
+    candado.onclick = () => { location.hash = "#/mayores"; };
+    v.querySelector(".instalar-zona").appendChild(candado);
     // Si todavía no existe img/maria.png, mostramos la muñequita dibujada (img/maria.svg)
     v.querySelector("#avatar img").onerror = function () {
       if (!this.src.endsWith("/img/maria.svg")) this.src = "/img/maria.svg";
@@ -267,7 +276,7 @@
       b.onclick = () => { decir(c.nombre); location.hash = "#/cat/" + c.id; };
       rej.appendChild(b);
     });
-    const rec = leerRecientes().map(seccion).filter(Boolean);
+    const rec = leerRecientes().filter(r => !listaAjuste("ocultos").has(r)).map(seccion).filter(Boolean);
     if (rec.length) {
       v.querySelector(".recientes").classList.remove("oculto");
       rec.forEach(s => v.querySelector(".rejilla-recientes").appendChild(tarjetaSeccion(s)));
@@ -540,7 +549,8 @@
       <div class="acciones"><a class="btn-accion" href="/libro-para-colorear.pdf" download>📥 Libro para imprimir (PDF)</a></div>
     </section>`);
     const rej = v.querySelector(".rejilla-dibujos");
-    DIBUJOS.forEach(d => {
+    const dibOcultos = listaAjuste("dibujos-ocultos");
+    DIBUJOS.filter(d => !dibOcultos.has(d.id)).forEach(d => {
       const b = h(`<button class="miniatura-dibujo" aria-label="${d.nombre}">${svgDibujo(d)}</button>`);
       pintarGuardado(b.querySelector("svg"), d.id);
       b.onclick = () => { decir(d.nombre); location.hash = "#/colorear/" + d.id; };
@@ -1262,25 +1272,252 @@
     return v;
   }
 
-  /* ---------- Vídeos ---------- */
-  const VIDEOS = (window.VIDEOS_MARIA || []).filter(x => x && /^[\w-]{11}$/.test(x.id));
-  function videos() {
-    if (!VIDEOS.length) {
-      return h(`<section class="aviso"><div class="ico">📺</div><p>¡Pronto habrá vídeos aquí!</p></section>`);
+  /* ---------- Vídeos ----------
+     La lista viene de la hoja de Google (window.HOJA_VIDEOS, en videos.js) si está conectada;
+     si no, de VIDEOS_MARIA. Se guarda una copia en el dispositivo para que funcione sin conexión. */
+  const ID_OK = /^[\w-]{11}$/;
+  const HOJA = window.HOJA_VIDEOS || "";
+  const videosFijos = (window.VIDEOS_MARIA || []).filter(x => x && ID_OK.test(x.id)).map(x => ({ categoria: x.categoria || "Bluey", ...x }));
+  const leerCacheVideos = () => { try { const c = JSON.parse(localStorage.getItem("videos-hoja") || "null"); return Array.isArray(c) ? c : null; } catch (e) { return null; } };
+  let listaVideos = (HOJA && leerCacheVideos()) || videosFijos;
+  const guardarListaVideos = (l) => {
+    listaVideos = l.filter(x => x && ID_OK.test(x.id));
+    try { localStorage.setItem("videos-hoja", JSON.stringify(listaVideos)); } catch (e) {}
+  };
+  let pidiendoVideos = null;
+  const actualizarVideos = () => {
+    if (!HOJA) return Promise.resolve(false);
+    if (!pidiendoVideos) {
+      const antes = JSON.stringify(listaVideos);
+      pidiendoVideos = fetch(HOJA, { cache: "no-store" }).then(r => r.json())
+        .then(d => {
+          const aAntes = JSON.stringify(ajustes);
+          if (d && d.ok && Array.isArray(d.videos)) guardarListaVideos(d.videos);
+          if (d && d.ok && d.ajustes) guardarAjustes(d.ajustes);
+          return JSON.stringify(listaVideos) !== antes || JSON.stringify(ajustes) !== aAntes;
+        })
+        .catch(() => false).finally(() => { pidiendoVideos = null; });
     }
-    const v = h(`<section class="lista-videos"></section>`);
-    VIDEOS.forEach(x => {
-      const b = h(`<button class="miniatura"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${x.id}/hqdefault.jpg"><div>${x.emoji || "▶️"} ${x.titulo || ""}</div></button>`);
-      b.onclick = () => { location.hash = "#/video/" + x.id; };
-      v.appendChild(b);
-    });
+    return pidiendoVideos;
+  };
+  const enviarHoja = (datos) => fetch(HOJA, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(datos) })
+    .then(r => r.json()).then(d => { if (d && d.ok && Array.isArray(d.videos)) guardarListaVideos(d.videos); if (d && d.ok && d.ajustes) guardarAjustes(d.ajustes); return d; });
+  const categoriasVideos = () => [...new Set(listaVideos.map(x => x.categoria || "Vídeos"))];
+  const ICO_CAT = (c) => /bluey/i.test(c) ? "🐶" : /canci|músic|music/i.test(c) ? "🎵" : /cuento/i.test(c) ? "📖" : /dibujo/i.test(c) ? "🎨" : /ingl/i.test(c) ? "🇬🇧" : "📺";
+  const miniVideo = (x) => {
+    const b = h(`<button class="miniatura"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${x.id}/hqdefault.jpg"><div></div></button>`);
+    b.querySelector("div").textContent = `${x.emoji || "▶️"} ${x.titulo || ""}`;
+    b.onclick = () => { location.hash = "#/video/" + x.id; };
+    return b;
+  };
+  // Si la hoja trae cambios mientras se ve la lista, la repintamos
+  const refrescarAlVolver = (v) => { actualizarVideos().then(cambio => { if (cambio && v.isConnected) navegar(); }); };
+  function videos(cat) {
+    const v = h(`<section></section>`);
+    refrescarAlVolver(v);
+    if (!listaVideos.length) { v.appendChild(h(`<div class="aviso"><div class="ico">📺</div><p>¡Pronto habrá vídeos aquí!</p></div>`)); return v; }
+    const cats = categoriasVideos();
+    if (cat === undefined && cats.length > 1) {
+      const rej = h(`<div class="rejilla rejilla-carpetas-video"></div>`);
+      cats.forEach(c => {
+        const primero = listaVideos.find(x => (x.categoria || "Vídeos") === c);
+        const b = h(`<button class="carpeta-video"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${primero.id}/hqdefault.jpg"><div class="nombre"><span class="ico"></span> <span class="txt"></span></div></button>`);
+        b.querySelector(".ico").textContent = ICO_CAT(c); b.querySelector(".txt").textContent = c;
+        b.onclick = () => { decir(c); location.hash = "#/videos/" + encodeURIComponent(c); };
+        rej.appendChild(b);
+      });
+      v.appendChild(rej); return v;
+    }
+    const lista = h(`<div class="lista-videos"></div>`);
+    listaVideos.filter(x => cat === undefined || (x.categoria || "Vídeos") === cat).forEach(x => lista.appendChild(miniVideo(x)));
+    v.appendChild(lista);
     return v;
   }
   function video(id) {
-    if (!VIDEOS.some(x => x.id === id)) return videos();
+    if (!ID_OK.test(id) || !listaVideos.some(x => x.id === id)) return videos();
     return h(`<section><div class="reproductor"><iframe
       src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1"
       title="Vídeo" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></section>`);
+  }
+
+  /* ---------- Zona para mayores ---------- */
+  const idDeEnlace = (t) => {
+    t = (t || "").trim();
+    if (ID_OK.test(t)) return t;
+    const m = t.match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/);
+    return m ? m[1] : "";
+  };
+  function mayores() {
+    const v = h(`<section class="mayores"></section>`);
+    // Pregunta de adulto: una multiplicación que María todavía no sabe
+    const a = 6 + azar(4), b = 6 + azar(4), ok = a * b;
+    const opciones = barajar([ok, ok + a, ok - b, ok + 10].filter((x, i, l) => l.indexOf(x) === i));
+    const puerta = h(`<div class="puerta-mayores"><p class="titulo-mayores">🔒 Solo para mayores</p><p class="pregunta-mayores">¿Cuánto es ${a} × ${b}?</p><div class="opciones-mayores"></div></div>`);
+    opciones.forEach(n => {
+      const bt = h(`<button class="btn-accion">${n}</button>`);
+      bt.onclick = () => { if (n === ok) { puerta.remove(); panel(); } else location.hash = "#/"; };
+      puerta.querySelector(".opciones-mayores").appendChild(bt);
+    });
+    v.appendChild(puerta);
+    const panel = () => {
+      const t = h(`<div class="pestanas-mayores">
+        <button class="activa" data-p="videos">📺 Vídeos</button><button data-p="juegos">🎲 Juegos</button>
+        <button data-p="dibujos">🖍️ Dibujos</button><button data-p="sonido">🔊 Sonido</button></div>`);
+      v.appendChild(t);
+      const p = h(`<div class="panel-mayores" data-p="videos">
+        <h2>📺 Añadir un vídeo</h2>
+        <p class="ayuda-mayores">Copia el enlace del vídeo en YouTube (botón «Compartir» → «Copiar enlace») y pégalo aquí.</p>
+        <form class="form-video">
+          <label>Enlace de YouTube<input name="enlace" type="url" inputmode="url" placeholder="https://youtu.be/…" required></label>
+          <label>Nombre que verá María<input name="titulo" maxlength="60" placeholder="Por ejemplo: Canción de los colores" required></label>
+          <label>Categoría (escribe una nueva para crearla)<input name="categoria" list="cats-video" maxlength="30" placeholder="Bluey" required></label>
+          <datalist id="cats-video"></datalist>
+          <div class="emojis-video"></div>
+          <label class="campo-clave">Palabra clave<input name="clave" autocomplete="off" autocapitalize="off"></label>
+          <button class="btn-accion" type="submit">➕ Añadir vídeo</button>
+          <p class="estado-mayores"></p>
+        </form>
+        <h2>🗂️ Vídeos que hay</h2>
+        <div class="lista-mayores"></div>
+      </div>`);
+      v.appendChild(p);
+      const f = p.querySelector("form"), estado = p.querySelector(".estado-mayores");
+      const clave = f.elements.clave;
+      try { clave.value = localStorage.getItem("clave-mayores") || ""; } catch (e) {}
+      if (clave.value) p.querySelector(".campo-clave").classList.add("oculto");
+      let emoji = "▶️";
+      ["▶️", "🐶", "🎵", "📖", "🎨", "🦄", "🚗", "🌈", "⭐", "🐻"].forEach((e, i) => {
+        const bt = h(`<button type="button" class="chip${i === 0 ? " activo" : ""}">${e}</button>`);
+        bt.onclick = () => { emoji = e; p.querySelectorAll(".emojis-video .activo").forEach(y => y.classList.remove("activo")); bt.classList.add("activo"); };
+        p.querySelector(".emojis-video").appendChild(bt);
+      });
+      const pintarLista = () => {
+        p.querySelector("#cats-video").replaceChildren(...categoriasVideos().map(c => { const o = document.createElement("option"); o.value = c; return o; }));
+        const l = p.querySelector(".lista-mayores"); l.replaceChildren();
+        categoriasVideos().forEach(c => {
+          const g = h(`<div class="grupo-mayores"><h3></h3></div>`); g.querySelector("h3").textContent = `${ICO_CAT(c)} ${c}`;
+          listaVideos.filter(x => (x.categoria || "Vídeos") === c).forEach(x => {
+            const fila = h(`<div class="fila-mayores"><img alt="" src="https://i.ytimg.com/vi/${x.id}/default.jpg"><span></span><button class="btn-borrar" ${HOJA ? "" : "disabled"}>🗑️</button></div>`);
+            fila.querySelector("span").textContent = `${x.emoji || "▶️"} ${x.titulo || ""}`;
+            const bb = fila.querySelector("button");
+            bb.onclick = async () => {
+              if (!bb.classList.contains("seguro")) { bb.classList.add("seguro"); bb.textContent = "¿Quitar?"; setTimeout(() => { bb.classList.remove("seguro"); bb.textContent = "🗑️"; }, 3000); return; }
+              bb.disabled = true;
+              const d = await enviarHoja({ clave: clave.value.trim(), accion: "borrar", id: x.id, categoria: x.categoria }).catch(() => null);
+              if (!d || !d.ok) { estado.textContent = d && d.error === "clave" ? "❌ La palabra clave no es correcta." : "❌ No se ha podido quitar. ¿Hay conexión?"; bb.disabled = false; mostrarClave(); return; }
+              pintarLista();
+            };
+            g.appendChild(fila);
+          });
+          l.appendChild(g);
+        });
+      };
+      const mostrarClave = () => p.querySelector(".campo-clave").classList.remove("oculto");
+      if (!HOJA) { estado.textContent = "⚠️ Falta conectar la hoja de Google: de momento no se pueden guardar vídeos."; f.querySelector("[type=submit]").disabled = true; }
+      f.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = idDeEnlace(f.elements.enlace.value);
+        if (!id) { estado.textContent = "❌ Ese enlace no parece de YouTube."; return; }
+        if (!clave.value.trim()) { mostrarClave(); estado.textContent = "Escribe la palabra clave."; clave.focus(); return; }
+        estado.textContent = "⏳ Guardando…";
+        const d = await enviarHoja({ clave: clave.value.trim(), accion: "anadir", id, titulo: f.elements.titulo.value.trim(), categoria: f.elements.categoria.value.trim(), emoji }).catch(() => null);
+        if (!d || !d.ok) {
+          estado.textContent = d && d.error === "clave" ? "❌ La palabra clave no es correcta." : "❌ No se ha podido guardar. ¿Hay conexión?";
+          if (d && d.error === "clave") mostrarClave();
+          return;
+        }
+        try { localStorage.setItem("clave-mayores", clave.value.trim()); } catch (e2) {}
+        p.querySelector(".campo-clave").classList.add("oculto");
+        estado.textContent = "✅ ¡Vídeo añadido! Ya sale en todos los dispositivos.";
+        f.elements.enlace.value = ""; f.elements.titulo.value = "";
+        pintarLista();
+      };
+      pintarLista();
+      actualizarVideos().then(c => { if (c && p.isConnected) { pintarLista(); pintarJuegos(); pintarDibujos(); } });
+
+      // Guarda un ajuste en la hoja (y en este dispositivo)
+      const guardarAjuste = async (nombre, valor, aviso) => {
+        guardarAjustes({ ...ajustes, [nombre]: valor });
+        if (!HOJA) { aviso.textContent = "✅ Guardado en este dispositivo."; return; }
+        if (!clave.value.trim()) { aviso.textContent = "✅ Guardado en este dispositivo. Escribe la palabra clave en Vídeos para que valga en todos."; return; }
+        aviso.textContent = "⏳ Guardando…";
+        const d = await enviarHoja({ clave: clave.value.trim(), accion: "ajuste", nombre, valor }).catch(() => null);
+        aviso.textContent = d && d.ok ? "✅ Guardado en todos los dispositivos." : d && d.error === "clave" ? "❌ La palabra clave no es correcta." : "⚠️ Guardado solo aquí (sin conexión).";
+      };
+      const interruptor = (txt, encendido, alCambiar) => {
+        const f = h(`<label class="interruptor"><span class="txt"></span><input type="checkbox"><span class="pista"></span></label>`);
+        f.querySelector(".txt").innerHTML = txt; const c = f.querySelector("input"); c.checked = encendido;
+        c.onchange = () => alCambiar(c.checked);
+        return f;
+      };
+
+      // 🎲 Juegos: mostrar u ocultar cada juego
+      const pj = h(`<div class="panel-mayores oculto" data-p="juegos"><h2>🎲 Juegos que ve María</h2><p class="ayuda-mayores">Apaga los que no quieras que salgan.</p><div class="lista-interruptores"></div><p class="estado-mayores"></p></div>`);
+      v.appendChild(pj);
+      const pintarJuegos = () => {
+        const l = pj.querySelector(".lista-interruptores"); l.replaceChildren();
+        CATEGORIAS.forEach(cat => {
+          const conocidas = new Set(CATEGORIAS.flatMap(c => c.rutas));
+          const rutas = cat.rutas.slice();
+          if (cat.id === "jugar") todasSecciones().forEach(s => { if (!conocidas.has(s.ruta)) rutas.push(s.ruta); });
+          const g = h(`<div class="grupo-mayores"><h3>${cat.ico} ${cat.nombre}</h3></div>`);
+          rutas.map(seccion).filter(Boolean).forEach(sx => {
+            g.appendChild(interruptor(`${sx.ico} ${sx.nombre}`, !listaAjuste("ocultos").has(sx.ruta), (si) => {
+              const o = listaAjuste("ocultos"); si ? o.delete(sx.ruta) : o.add(sx.ruta);
+              guardarAjuste("ocultos", [...o].join(","), pj.querySelector(".estado-mayores"));
+            }));
+          });
+          l.appendChild(g);
+        });
+      };
+      pintarJuegos();
+
+      // 🖍️ Dibujos: ocultar dibujos de la web y quitar los añadidos en este dispositivo
+      const pd = h(`<div class="panel-mayores oculto" data-p="dibujos">
+        <h2>🖍️ Dibujos de la web</h2><p class="ayuda-mayores">Apaga los que no quieras que salgan en Colorear.</p><div class="lista-dib-web"></div><p class="estado-mayores"></p>
+        <h2>📥 Láminas de este dispositivo</h2>
+        <p class="ayuda-mayores">Las láminas que añadís (fotos, PDF o carpetas, como las de Bluey) se guardan solo en este dispositivo y no se publican en internet. Para añadir más, ve a Colorear → «Añadir dibujo».</p>
+        <button class="btn-accion" data-a="ir-colorear">🖍️ Ir a Colorear</button>
+        <div class="lista-dib-mios"></div></div>`);
+      v.appendChild(pd);
+      pd.querySelector('[data-a="ir-colorear"]').onclick = () => { location.hash = "#/colorear"; };
+      const pintarDibujos = () => {
+        const l = pd.querySelector(".lista-dib-web"); l.replaceChildren();
+        DIBUJOS.forEach(d => l.appendChild(interruptor(`${d.ico || "🖍️"} ${d.nombre}`, !listaAjuste("dibujos-ocultos").has(d.id), (si) => {
+          const o = listaAjuste("dibujos-ocultos"); si ? o.delete(d.id) : o.add(d.id);
+          guardarAjuste("dibujos-ocultos", [...o].join(","), pd.querySelector(".estado-mayores"));
+        })));
+        misDibujos.listar().then(lista => {
+          const m = pd.querySelector(".lista-dib-mios"); m.replaceChildren();
+          if (!lista || !lista.length) { m.appendChild(h(`<p class="ayuda-mayores">Todavía no hay láminas en este dispositivo.</p>`)); return; }
+          const grupos = {};
+          lista.forEach(d => { const c = [d.categoria, d.subcategoria].filter(Boolean).join(" › ") || "Sin carpeta"; (grupos[c] = grupos[c] || []).push(d); });
+          Object.keys(grupos).sort().forEach(c => {
+            const fila = h(`<div class="fila-mayores"><span></span><button class="btn-borrar">🗑️</button></div>`);
+            fila.querySelector("span").textContent = `📁 ${c} (${grupos[c].length})`;
+            const bb = fila.querySelector("button");
+            bb.onclick = async () => {
+              if (!bb.classList.contains("seguro")) { bb.classList.add("seguro"); bb.textContent = "¿Quitar?"; setTimeout(() => { bb.classList.remove("seguro"); bb.textContent = "🗑️"; }, 3000); return; }
+              for (const d of grupos[c]) await misDibujos.borrar(d.id);
+              pintarDibujos();
+            };
+            m.appendChild(fila);
+          });
+        }).catch(() => {});
+      };
+      pintarDibujos();
+
+      // 🔊 Sonido de este dispositivo
+      const ps = h(`<div class="panel-mayores oculto" data-p="sonido"><h2>🔊 Sonido</h2><p class="ayuda-mayores">Esto se guarda solo en este dispositivo.</p><div class="lista-interruptores"></div></div>`);
+      v.appendChild(ps);
+      ps.querySelector(".lista-interruptores").appendChild(interruptor("🔊 Sonidos y voz", sonido, (si) => { if (si !== sonido) btnSonido.click(); }));
+
+      t.querySelectorAll("button").forEach(b => b.onclick = () => {
+        t.querySelectorAll("button").forEach(y => y.classList.toggle("activa", y === b));
+        v.querySelectorAll(".panel-mayores").forEach(x => x.classList.toggle("oculto", x.dataset.p !== b.dataset.p));
+      });
+    };
+    return v;
   }
 
   function botonInstalar(zona) {
@@ -1317,6 +1554,8 @@
     callar();
     let vista;
     if (ruta === "video" && extra) vista = video(extra);
+    else if (ruta === "videos" && extra) vista = videos(decodeURIComponent(extra));
+    else if (ruta === "mayores") vista = mayores();
     else if (ruta === "colorear" && extra === "cat" && partes[2]) vista = colorearCarpeta(decodeURIComponent(partes[2]), partes[3] !== undefined ? decodeURIComponent(partes[3]) : undefined);
     else if (ruta === "colorear" && extra && extra.startsWith("mio-")) vista = colorearMio(Number(extra.slice(4)));
     else if (ruta === "colorear" && extra) vista = colorearDibujo(extra);
@@ -1332,7 +1571,8 @@
     const ruta = location.hash.replace(/^#\/?/, "").split("/")[0];
     const partes = location.hash.replace(/^#\/?/, "").split("/");
     if (ruta === "colorear" && partes[1] === "cat" && partes.length > 3) { location.hash = "#/" + partes.slice(0, 3).join("/"); return; }
-    if (ruta === "video") { location.hash = "#/videos"; return; }
+    if (ruta === "video" || (ruta === "videos" && partes[1])) { location.hash = "#/videos"; return; }
+    if (ruta === "mayores") { location.hash = "#/"; return; }
     if (ruta === "colorear" && partes[1]) { location.hash = "#/colorear"; return; }
     // Desde un juego se vuelve a su categoría; desde la categoría, a la portada
     location.hash = (ruta && ruta !== "cat" && RUTAS[ruta]) ? "#/cat/" + categoriaDe(ruta).id : "#/";

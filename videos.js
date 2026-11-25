@@ -24,3 +24,7 @@ window.VIDEOS_MARIA = [
   { titulo: "La carrera de Bluey de bebé", id: "5uu6t21vR4I", emoji: "🏁" },
   // { titulo: "Ejemplo", id: "CODIGO_DEL_VIDEO", emoji: "🐶" },
 ];
+
+// Dirección de la conexión con la hoja de Google (vídeos y ajustes de la zona para mayores).
+// Si está vacía, se usa la lista de arriba.
+window.HOJA_VIDEOS = "";
