@@ -1,8 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <!-- Niña original: pelo moreno oscuro y piel muy clarita -->
+  <!-- Niña original: pelo moreno oscuro con dos coletas y piel muy clarita -->
   <rect width="200" height="200" fill="#ffe7f0"/>
-  <!-- pelo de atrás -->
-  <path d="M38 112 C30 50 70 22 100 22 C130 22 170 50 162 112 L166 170 C150 182 130 178 124 168 L76 168 C70 178 50 182 34 170 Z" fill="#2a1b14"/>
+  <!-- dos coletas -->
+  <path d="M46 70 C22 66 8 92 14 122 C18 142 30 154 26 168 C44 160 52 138 50 116 C49 100 54 84 46 70 Z" fill="#2a1b14"/>
+  <path d="M154 70 C178 66 192 92 186 122 C182 142 170 154 174 168 C156 160 148 138 150 116 C151 100 146 84 154 70 Z" fill="#2a1b14"/>
+  <!-- gomas de las coletas -->
+  <circle cx="44" cy="76" r="8" fill="#ff5f9e"/><circle cx="41" cy="73" r="2.5" fill="#fff" opacity=".7"/>
+  <circle cx="156" cy="76" r="8" fill="#ff5f9e"/><circle cx="153" cy="73" r="2.5" fill="#fff" opacity=".7"/>
+  <!-- pelo de arriba -->
+  <path d="M48 100 C44 54 72 30 100 30 C128 30 156 54 152 100 Z" fill="#2a1b14"/>
   <!-- cuello y cuerpo -->
   <rect x="88" y="140" width="24" height="22" rx="8" fill="#fbe3d6"/>
   <path d="M46 200 C50 170 72 156 100 156 C128 156 150 170 154 200 Z" fill="#ff8fb1"/>
@@ -14,9 +20,6 @@
   <ellipse cx="149" cy="106" rx="8" ry="11" fill="#fbe3d6"/>
   <!-- flequillo -->
   <path d="M50 96 C48 58 72 40 100 40 C128 40 152 58 150 96 C140 84 132 70 126 60 C118 76 100 82 86 80 C78 88 64 94 50 96 Z" fill="#2a1b14"/>
-  <!-- lazo -->
-  <path d="M132 46 L150 34 L152 58 Z M132 46 L152 52 L140 66 Z" fill="#ff5f9e"/>
-  <circle cx="138" cy="50" r="6" fill="#ff8fb1"/>
   <!-- ojos -->
   <ellipse cx="80" cy="106" rx="7" ry="9" fill="#2a1b14"/>
   <ellipse cx="120" cy="106" rx="7" ry="9" fill="#2a1b14"/>
