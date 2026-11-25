@@ -602,3 +602,8 @@ main { padding-top: 18px; }
 }
 .chip.activo { outline: 4px solid #ff5f9e; transform: scale(1.08); }
 .btn-disparar { font-size: 1.4rem; }
+.visor .foto-fija { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.botones-camara { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.aviso-camara small { font-weight: 600; font-size: .85em; }
+.aviso-camara .plan-b { margin-top: 12px; cursor: pointer; }
+.botones-camara .plan-b { margin-top: 0; }

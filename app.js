@@ -896,6 +896,30 @@
     { ico: "🌊", f: "saturate(1.4) hue-rotate(170deg)" },
     { ico: "✨", f: "saturate(2.2) contrast(1.15)" },
   ];
+  // Safari no aplica ctx.filter: hacemos los filtros a mano en los píxeles
+  function filtrarPixeles(ctx, w, h2, f) {
+    if (!f || f === "none") return;
+    const d = ctx.getImageData(0, 0, w, h2), p = d.data;
+    const num = (n, def) => { const m = f.match(new RegExp(n + "\\(([-\\d.]+)")); return m ? parseFloat(m[1]) : def; };
+    const gris = num("grayscale", 0), sepia = num("sepia", 0), sat = num("saturate", 1), con = num("contrast", 1), bri = num("brightness", 1), hue = num("hue-rotate", 0) * Math.PI / 180;
+    const cs = Math.cos(hue), sn = Math.sin(hue);
+    for (let i = 0; i < p.length; i += 4) {
+      let r = p[i], g = p[i + 1], b = p[i + 2];
+      if (gris) { const l = .2126 * r + .7152 * g + .0722 * b; r += (l - r) * gris; g += (l - g) * gris; b += (l - b) * gris; }
+      if (sepia) { const sr = .393 * r + .769 * g + .189 * b, sg = .349 * r + .686 * g + .168 * b, sb = .272 * r + .534 * g + .131 * b; r += (sr - r) * sepia; g += (sg - g) * sepia; b += (sb - b) * sepia; }
+      if (sat !== 1) { const l = .2126 * r + .7152 * g + .0722 * b; r = l + (r - l) * sat; g = l + (g - l) * sat; b = l + (b - l) * sat; }
+      if (hue) {
+        const nr = r * (.213 + cs * .787 - sn * .213) + g * (.715 - cs * .715 - sn * .715) + b * (.072 - cs * .072 + sn * .928);
+        const ng = r * (.213 - cs * .213 + sn * .143) + g * (.715 + cs * .285 + sn * .140) + b * (.072 - cs * .072 - sn * .283);
+        const nb = r * (.213 - cs * .213 - sn * .787) + g * (.715 - cs * .715 + sn * .715) + b * (.072 + cs * .928 + sn * .072);
+        r = nr; g = ng; b = nb;
+      }
+      if (con !== 1) { r = (r - 128) * con + 128; g = (g - 128) * con + 128; b = (b - 128) * con + 128; }
+      if (bri !== 1) { r *= bri; g *= bri; b *= bri; }
+      p[i] = r; p[i + 1] = g; p[i + 2] = b;
+    }
+    ctx.putImageData(d, 0, 0);
+  }
   const PEGATINAS = ["👑", "🎀", "👓", "🌸", "⭐", "💖", "🌈", "🦄", "🐱", "🐶", "🦋", "🍓"];
 
   function fotos() {
@@ -920,24 +944,73 @@
     const btn = (a) => v.querySelector(`[data-a="${a}"]`);
     let flujo = null, filtro = "none", pegatina = PEGATINAS[0], ultima = null;
 
-    const avisar = (txt) => { aviso.innerHTML = txt; aviso.classList.remove("oculto"); };
+    const avisar = (txt, conPlanB = true) => {
+      aviso.innerHTML = txt + (conPlanB ? `<br><label class="btn-accion btn-encender plan-b">📷 Usar la cámara del móvil<input type="file" accept="image/*" capture="user" hidden></label>` : "");
+      aviso.classList.remove("oculto");
+      const inp = aviso.querySelector(".plan-b input");
+      if (inp) inp.onchange = (e) => usarFotoFija(e.target.files[0]);
+    };
+    const ua = navigator.userAgent;
+    const appInterna = /FBAN|FBAV|Instagram|WhatsApp|Line\/|GSA\/|Telegram/i.test(ua);
     // La cámara solo se enciende al pulsar el botón
-    const encender = () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { avisar("📷<br>Este navegador no deja usar la cámara aquí."); return; }
+    const encender = async () => {
+      if (!window.isSecureContext) { avisar("📷<br>La cámara solo funciona en la dirección segura (https)."); return; }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        avisar(appInterna ? "📷<br>Abre la web en <b>Safari</b> o <b>Chrome</b> para usar la cámara." : "📷<br>Este navegador no deja usar la cámara aquí.");
+        return;
+      }
       aviso.classList.add("oculto");
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false })
-        .then(s => { flujo = s; video.srcObject = s; return video.play(); })
-        .catch(() => { avisar("📷<br>Hace falta dar permiso para usar la cámara.<br><small>Pídeselo a un mayor.</small>"); });
+      const intentos = [
+        { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false },
+        { video: { facingMode: "user" }, audio: false },
+        { video: true, audio: false },
+      ];
+      let error = null;
+      for (const c of intentos) {
+        try { flujo = await navigator.mediaDevices.getUserMedia(c); error = null; break; }
+        catch (e) { error = e; if (e.name === "NotAllowedError" || e.name === "SecurityError") break; }
+      }
+      if (!flujo) {
+        const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        const msg = error && (error.name === "NotAllowedError" || error.name === "SecurityError")
+          ? (ios ? "📷<br>La cámara está bloqueada.<br><small>En el iPhone: toca <b>aA</b> en la barra de Safari → <b>Ajustes del sitio web</b> → <b>Cámara: Permitir</b>. O en Ajustes → Safari → Cámara.</small>"
+                 : "📷<br>La cámara está bloqueada.<br><small>Toca el candado de la barra de direcciones y permite la cámara.</small>")
+          : "📷<br>No se ha podido encender la cámara.";
+        avisar(msg);
+        return;
+      }
+      video.srcObject = flujo;
+      video.setAttribute("playsinline", ""); video.muted = true;
+      const reproducir = () => video.play().catch(() => {});
+      if (video.readyState >= 1) reproducir(); else video.onloadedmetadata = reproducir;
+    };
+    // Plan B (sirve siempre en iPhone): hacer la foto con la cámara del sistema y decorarla después
+    let fija = null;
+    const usarFotoFija = (archivo) => {
+      if (!archivo) return;
+      const img = new Image();
+      img.onload = () => {
+        fija = img;
+        if (flujo) { flujo.getTracks().forEach(t => t.stop()); flujo = null; }
+        video.classList.add("oculto");
+        let vista = v.querySelector(".foto-fija");
+        if (!vista) { vista = h(`<img class="foto-fija" alt="">`); v.querySelector(".visor").insertBefore(vista, capa); }
+        vista.src = img.src; vista.style.filter = filtro;
+        aviso.classList.add("oculto");
+      };
+      img.src = URL.createObjectURL(archivo);
     };
     aviso.classList.remove("oculto");
-    aviso.replaceChildren(h(`<button class="btn-accion btn-encender">📷 Encender la cámara</button>`));
+    aviso.replaceChildren(h(`<div class="botones-camara"><button class="btn-accion btn-encender">📷 Encender la cámara</button><label class="btn-accion btn-encender plan-b">🤳 Hacer una foto<input type="file" accept="image/*" capture="user" hidden></label></div>`));
     aviso.querySelector("button").onclick = encender;
+    aviso.querySelector(".plan-b input").onchange = (e) => usarFotoFija(e.target.files[0]);
     v._limpiar = () => { if (flujo) flujo.getTracks().forEach(t => t.stop()); };
 
     FILTROS.forEach((x, i) => {
       const b = h(`<button class="chip${i === 0 ? " activo" : ""}">${x.ico}</button>`);
       b.onclick = () => {
         filtro = x.f; video.style.filter = x.f;
+        const ff = v.querySelector(".foto-fija"); if (ff) ff.style.filter = x.f;
         v.querySelectorAll(".filtros .activo").forEach(y => y.classList.remove("activo")); b.classList.add("activo"); nota(700, .08);
       };
       v.querySelector(".filtros").appendChild(b);
@@ -959,13 +1032,17 @@
     });
 
     btn("foto").onclick = () => {
-      if (!flujo || !video.videoWidth) return;
-      const w = video.videoWidth, hh = video.videoHeight;
+      const fuente = fija || (flujo && video.videoWidth ? video : null);
+      if (!fuente) return;
+      const w = fija ? fija.naturalWidth : video.videoWidth, hh = fija ? fija.naturalHeight : video.videoHeight;
       const c = document.createElement("canvas"); c.width = w; c.height = hh;
       const ctx = c.getContext("2d");
-      ctx.save(); ctx.translate(w, 0); ctx.scale(-1, 1); // como un espejo, igual que se ve en pantalla
-      ctx.filter = filtro; ctx.drawImage(video, 0, 0, w, hh); ctx.restore();
-      ctx.filter = "none";
+      ctx.save();
+      if (!fija) { ctx.translate(w, 0); ctx.scale(-1, 1); } // como un espejo, igual que se ve en pantalla
+      const filtroNativo = "filter" in ctx;
+      if (filtroNativo) ctx.filter = filtro;
+      ctx.drawImage(fuente, 0, 0, w, hh); ctx.restore();
+      if (filtroNativo) ctx.filter = "none"; else filtrarPixeles(ctx, w, hh, filtro);
       // El vídeo se muestra recortado (object-fit: cover): calculamos dónde cae cada pegatina
       const r = capa.getBoundingClientRect();
       const k = Math.max(r.width / w, r.height / hh), ox = (w * k - r.width) / 2, oy = (hh * k - r.height) / 2;
@@ -984,6 +1061,7 @@
       }, "image/jpeg", .92);
     };
     btn("otra").onclick = () => {
+      if (fija && !flujo) { fija = null; const ff = v.querySelector(".foto-fija"); if (ff) ff.remove(); video.classList.remove("oculto"); aviso.classList.remove("oculto"); }
       hecha.classList.add("oculto"); btn("foto").classList.remove("oculto");
       btn("guardar").classList.add("oculto"); btn("otra").classList.add("oculto");
     };
