@@ -181,17 +181,59 @@ window.JUEGOS_EXTRA = [];
   });
 
   /* ---------- Letras y números para repasar con el dedo ---------- */
-  const circulo = (cx, cy, r) => { const p = []; for (let a = -90; a <= 270; a += 15) p.push([cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)]); return p; };
-  const TRAZOS = [
-    { t: "M", voz: "La eme de María", s: [[[18, 90], [18, 12], [50, 60], [82, 12], [82, 90]]] },
-    { t: "A", voz: "La a", s: [[[18, 90], [50, 12], [82, 90]], [[32, 62], [68, 62]]] },
-    { t: "R", voz: "La erre", s: [[[24, 90], [24, 12], [58, 12], [74, 24], [74, 40], [58, 52], [24, 52]], [[50, 52], [78, 90]]] },
-    { t: "I", voz: "La i", s: [[[50, 12], [50, 90]]] },
-    { t: "O", voz: "La o", s: [circulo(50, 51, 38)] },
-    { t: "1", voz: "El número uno", s: [[[34, 28], [54, 12], [54, 90]]] },
-    { t: "2", voz: "El número dos", s: [[[26, 30], [36, 16], [52, 12], [68, 18], [74, 32], [66, 50], [26, 90], [78, 90]]] },
-    { t: "3", voz: "El número tres", s: [[[26, 20], [44, 12], [64, 14], [72, 28], [64, 44], [46, 50], [66, 56], [74, 72], [64, 86], [44, 90], [26, 82]]] },
-  ];
+  // Cada trazo es una lista de puntos en una hoja de 100×100. Se repasan en orden.
+  const arco = (cx, cy, rx, ry, a1, a2, paso = 12) => {
+    const p = [], d = a2 > a1 ? paso : -paso;
+    for (let a = a1; d > 0 ? a <= a2 : a >= a2; a += d) p.push([+(cx + rx * Math.cos(a * Math.PI / 180)).toFixed(1), +(cy + ry * Math.sin(a * Math.PI / 180)).toFixed(1)]);
+    return p;
+  };
+  const GLIFOS = {
+    A: [[[18, 90], [50, 12], [82, 90]], [[32, 62], [68, 62]]],
+    B: [[[24, 12], [24, 90]], [[24, 12], [56, 12], [70, 20], [72, 32], [62, 46], [24, 50]], [[24, 50], [62, 50], [76, 60], [78, 76], [66, 88], [24, 90]]],
+    C: [arco(52, 51, 34, 39, -40, -320)],
+    D: [[[24, 12], [24, 90]], [[24, 12], [50, 12], [70, 22], [78, 40], [78, 62], [70, 80], [50, 90], [24, 90]]],
+    E: [[[76, 12], [24, 12], [24, 90], [76, 90]], [[24, 51], [64, 51]]],
+    F: [[[76, 12], [24, 12], [24, 90]], [[24, 51], [64, 51]]],
+    G: [arco(52, 51, 34, 39, -40, -355), [[56, 54], [86, 54]]],
+    H: [[[22, 12], [22, 90]], [[78, 12], [78, 90]], [[22, 51], [78, 51]]],
+    I: [[[50, 12], [50, 90]]],
+    J: [[[70, 12], [70, 70], [64, 84], [50, 90], [36, 84], [30, 72]]],
+    K: [[[24, 12], [24, 90]], [[76, 12], [24, 60]], [[42, 44], [78, 90]]],
+    L: [[[26, 12], [26, 90], [78, 90]]],
+    M: [[[18, 90], [18, 12], [50, 60], [82, 12], [82, 90]]],
+    N: [[[22, 90], [22, 12], [78, 90], [78, 12]]],
+    "Ñ": [[[22, 92], [22, 22], [78, 92], [78, 22]], [[32, 10], [42, 4], [58, 10], [68, 4]]],
+    O: [arco(50, 51, 36, 39, -90, -450)],
+    P: [[[24, 90], [24, 12], [58, 12], [72, 20], [76, 32], [72, 44], [58, 52], [24, 52]]],
+    Q: [arco(50, 48, 34, 37, -90, -450), [[58, 66], [84, 92]]],
+    R: [[[24, 90], [24, 12], [58, 12], [74, 24], [74, 40], [58, 52], [24, 52]], [[50, 52], [78, 90]]],
+    S: [[[76, 22], [64, 13], [48, 12], [32, 17], [26, 30], [34, 43], [50, 50], [66, 57], [76, 70], [70, 84], [52, 90], [34, 88], [22, 78]]],
+    T: [[[18, 12], [82, 12]], [[50, 12], [50, 90]]],
+    U: [[[22, 12], [22, 64], [30, 82], [50, 90], [70, 82], [78, 64], [78, 12]]],
+    V: [[[18, 12], [50, 90], [82, 12]]],
+    W: [[[10, 12], [28, 90], [50, 36], [72, 90], [90, 12]]],
+    X: [[[20, 12], [80, 90]], [[80, 12], [20, 90]]],
+    Y: [[[20, 12], [50, 50], [80, 12]], [[50, 50], [50, 90]]],
+    Z: [[[20, 12], [80, 12], [20, 90], [80, 90]]],
+    "0": [arco(50, 51, 28, 39, -90, -450)],
+    "1": [[[34, 28], [54, 12], [54, 90]]],
+    "2": [[[26, 30], [36, 16], [52, 12], [68, 18], [74, 32], [66, 50], [26, 90], [78, 90]]],
+    "3": [[[26, 20], [44, 12], [64, 14], [72, 28], [64, 44], [46, 50], [66, 56], [74, 72], [64, 86], [44, 90], [26, 82]]],
+    "4": [[[62, 90], [62, 12], [18, 66], [84, 66]]],
+    "5": [[[74, 12], [32, 12], [28, 46], [48, 40], [66, 46], [76, 62], [70, 80], [52, 90], [32, 86], [24, 76]]],
+    "6": [[[70, 16], [54, 11], [38, 18], [28, 36], [26, 60], [32, 80], [50, 90], [68, 82], [74, 66], [66, 52], [50, 48], [34, 54], [27, 64]]],
+    "7": [[[20, 12], [80, 12], [42, 90]]],
+    "8": [[[50, 50], [34, 42], [30, 28], [38, 15], [50, 12], [62, 15], [70, 28], [66, 42], [50, 50], [32, 58], [26, 72], [34, 86], [50, 90], [66, 86], [74, 72], [68, 58], [50, 50]]],
+    "9": [[[72, 36], [66, 20], [50, 12], [34, 20], [28, 34], [34, 48], [50, 54], [66, 48], [72, 36], [72, 60], [66, 80], [50, 90], [34, 86]]],
+  };
+  const NOMBRE_LETRA = { A: "a", B: "be", C: "ce", D: "de", E: "e", F: "efe", G: "ge", H: "hache", I: "i", J: "jota", K: "ka", L: "ele", M: "eme", N: "ene", "Ñ": "eñe", O: "o", P: "pe", Q: "cu", R: "erre", S: "ese", T: "te", U: "u", V: "uve", W: "uve doble", X: "equis", Y: "i griega", Z: "zeta" };
+  const NOMBRE_NUM = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+  const vozDe = (c) => /\d/.test(c) ? `El número ${NOMBRE_NUM[+c]}` : (c === "M" ? "La eme de María" : `La ${NOMBRE_LETRA[c]}`);
+  const LETRAS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
+  const NUMEROS = "0123456789".split("");
+  // Quita tildes pero respeta la Ñ
+  const normalizar = (txt) => txt.toUpperCase().replace(/Ñ/g, "\u0001").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\u0001/g, "Ñ");
+
   const muestrear = (pts, paso = 6) => {
     const out = [];
     for (let i = 0; i < pts.length - 1; i++) {
@@ -201,47 +243,75 @@ window.JUEGOS_EXTRA = [];
     out.push(pts[pts.length - 1]);
     return out;
   };
+
   J.push({
     ruta: "letras", ico: "✍️", nombre: "Letras", clase: "c-amarillo",
     crear(H) {
       const v = H.h(`<section class="letras-juego">
+        <div class="modos">
+          <button class="btn-accion activa" data-m="letras">🔤 Letras</button>
+          <button class="btn-accion" data-m="numeros">🔢 Números</button>
+          <button class="btn-accion" data-m="palabra">✏️ Palabra</button>
+        </div>
+        <form class="escribir oculto">
+          <input type="text" maxlength="14" placeholder="Escribe una palabra…" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button class="btn-accion" type="submit">¡Vamos!</button>
+        </form>
+        <div class="palabra-modelo oculto"></div>
         <div class="pregunta"><button class="btn-oir" aria-label="Escuchar">👂</button><span class="txt"></span></div>
         <div class="hoja-letra"><svg viewBox="0 0 100 100"></svg></div>
-        <div class="acciones"><button class="btn-accion otra">➡️ Otra</button></div>
+        <div class="acciones"><button class="btn-accion atras">⬅️</button><button class="btn-accion otra">➡️ Otra</button></div>
       </section>`);
-      const svg = v.querySelector("svg"), txt = v.querySelector(".txt");
-      let idx = 0, puntos = [], sig = 0, trazoActual = 0;
+      const svg = v.querySelector("svg"), txt = v.querySelector(".txt"), form = v.querySelector(".escribir"), modelo = v.querySelector(".palabra-modelo");
+      let modo = "letras", lista = LETRAS, idx = 12 /* empieza por la M */, palabra = [], puntos = [], sig = 0;
       const NS = "http://www.w3.org/2000/svg";
       const el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+
+      const pintarModelo = () => {
+        modelo.innerHTML = palabra.map((c, i) => c === " " ? `<span class="hueco-palabra"></span>`
+          : `<span class="${i < idx ? "hecha" : i === idx ? "ahora" : ""}">${c}</span>`).join("");
+      };
       const cargar = () => {
-        const L = TRAZOS[idx % TRAZOS.length];
-        txt.textContent = L.t === "M" ? "La M de María" : L.voz;
-        v.querySelector(".btn-oir").onclick = () => H.decir(L.voz);
-        H.decir(L.voz);
-        svg.innerHTML = "";
-        puntos = []; sig = 0;
-        L.s.forEach((s, si) => {
+        if (modo === "palabra") {
+          while (palabra[idx] === " ") idx++;
+          if (idx >= palabra.length) return;
+          pintarModelo();
+        }
+        const c = modo === "palabra" ? palabra[idx] : lista[((idx % lista.length) + lista.length) % lista.length];
+        const trazos = GLIFOS[c];
+        const voz = vozDe(c);
+        txt.textContent = c === "M" ? "La M de María" : voz;
+        v.querySelector(".btn-oir").onclick = () => H.decir(voz);
+        H.decir(voz);
+        svg.innerHTML = ""; puntos = []; sig = 0;
+        trazos.forEach((s, si) => {
           svg.appendChild(el("polyline", { points: s.map(p => p.join(",")).join(" "), class: "guia" }));
           muestrear(s).forEach(p => puntos.push({ x: p[0], y: p[1], s: si }));
         });
-        // Puntos de salida numerados
-        L.s.forEach((s, si) => {
+        trazos.forEach((s, si) => {
           svg.appendChild(el("circle", { cx: s[0][0], cy: s[0][1], r: 5.5, class: "salida" }));
           const t = el("text", { x: s[0][0], y: s[0][1] + 2.2, class: "num" }); t.textContent = si + 1; svg.appendChild(t);
         });
-        trazoActual = el("polyline", { points: "", class: "hecho" }); svg.appendChild(trazoActual);
-        const guia = el("circle", { r: 4, class: "siguiente-punto" }); svg.appendChild(guia);
-        marcar(guia);
+        svg.appendChild(el("circle", { r: 4, class: "siguiente-punto" }));
+        marcar();
       };
-      const marcar = (g) => {
-        const guia = g || svg.querySelector(".siguiente-punto");
+      const marcar = () => {
+        const guia = svg.querySelector(".siguiente-punto");
         if (puntos[sig]) { guia.setAttribute("cx", puntos[sig].x); guia.setAttribute("cy", puntos[sig].y); }
-        const hechos = puntos.slice(0, sig);
-        // Dibuja lo repasado separado por trazos
         svg.querySelectorAll(".hecho").forEach(x => x.remove());
         const porTrazo = {};
-        hechos.forEach(p => (porTrazo[p.s] = porTrazo[p.s] || []).push(p));
+        puntos.slice(0, sig).forEach(p => (porTrazo[p.s] = porTrazo[p.s] || []).push(p));
         Object.values(porTrazo).forEach(ps => svg.insertBefore(el("polyline", { points: ps.map(p => p.x + "," + p.y).join(" "), class: "hecho" }), svg.querySelector(".salida")));
+      };
+      const terminado = () => {
+        if (modo === "palabra") {
+          idx++;
+          if (idx >= palabra.length) {
+            pintarModelo();
+            const texto = palabra.join("");
+            H.celebrar("🏆"); setTimeout(() => H.decir(`¡Has escrito ${texto.toLowerCase()}!`), 400);
+          } else { H.nota(880, .2); setTimeout(cargar, 700); }
+        } else { H.celebrar("✍️"); idx++; setTimeout(cargar, 2200); }
       };
       const pos = (e) => { const r = svg.getBoundingClientRect(); return { x: (e.clientX - r.left) * 100 / r.width, y: (e.clientY - r.top) * 100 / r.height }; };
       let dedo = false;
@@ -249,7 +319,6 @@ window.JUEGOS_EXTRA = [];
         if (!dedo || sig >= puntos.length) return;
         const p = pos(e);
         let avanzo = false;
-        // Acepta el siguiente punto (o salta uno si va rápido)
         for (let k = 0; k < 3 && puntos[sig]; k++) {
           const q = puntos[sig];
           if (Math.hypot(q.x - p.x, q.y - p.y) < 9) { sig++; avanzo = true; } else break;
@@ -257,13 +326,42 @@ window.JUEGOS_EXTRA = [];
         if (avanzo) {
           if (sig % 4 === 0) H.nota(400 + sig * 8, .08);
           marcar();
-          if (sig >= puntos.length) { H.celebrar("✍️"); idx++; setTimeout(cargar, 2200); }
+          if (sig >= puntos.length) terminado();
         }
       };
       svg.addEventListener("pointerdown", (e) => { dedo = true; svg.setPointerCapture(e.pointerId); mover(e); });
       svg.addEventListener("pointermove", mover);
       svg.addEventListener("pointerup", () => { dedo = false; });
+
+      const ponerModo = (m) => {
+        modo = m;
+        v.querySelectorAll(".modos .btn-accion").forEach(b => b.classList.toggle("activa", b.dataset.m === m));
+        form.classList.toggle("oculto", m !== "palabra");
+        modelo.classList.toggle("oculto", m !== "palabra");
+        v.querySelector(".atras").classList.toggle("oculto", m === "palabra");
+        v.querySelector(".otra").classList.toggle("oculto", m === "palabra");
+        if (m === "palabra") {
+          svg.innerHTML = ""; txt.textContent = "Escribe una palabra arriba"; modelo.innerHTML = "";
+          form.querySelector("input").focus();
+          return;
+        }
+        lista = m === "numeros" ? NUMEROS : LETRAS;
+        idx = m === "numeros" ? 0 : 12;
+        cargar();
+      };
+      v.querySelectorAll(".modos .btn-accion").forEach(b => b.onclick = () => ponerModo(b.dataset.m));
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const inp = form.querySelector("input");
+        const limpio = normalizar(inp.value).split("").filter(c => GLIFOS[c] || c === " ");
+        if (!limpio.some(c => c !== " ")) return;
+        palabra = limpio; idx = 0;
+        inp.blur();
+        H.decir(`Vamos a escribir ${inp.value.toLowerCase()}`);
+        setTimeout(cargar, 1500);
+      };
       v.querySelector(".otra").onclick = () => { idx++; cargar(); };
+      v.querySelector(".atras").onclick = () => { idx--; cargar(); };
       cargar();
       return v;
     },

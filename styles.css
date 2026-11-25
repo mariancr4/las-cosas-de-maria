@@ -553,3 +553,23 @@ main { padding-top: 18px; }
   text-shadow: 0 3px 0 rgba(0,0,0,.15); box-shadow: var(--sombra);
 }
 .cabecera-categoria .ico { font-size: 1.3em; }
+/* Letras: modos y palabra */
+.modos { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 12px; }
+.modos .btn-accion.activa { background: var(--g-amarillo); }
+.escribir { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+.escribir input {
+  font: 800 1.4rem "Baloo 2", sans-serif; color: var(--texto); text-transform: uppercase; letter-spacing: 2px;
+  border: none; border-radius: 999px; padding: 10px 20px; width: min(100%, 320px); box-shadow: var(--sombra-suave); outline: none; user-select: text; -webkit-user-select: text;
+}
+.palabra-modelo { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 12px; }
+.palabra-modelo span {
+  min-width: 48px; height: 58px; padding: 0 6px; border-radius: 14px; display: grid; place-items: center;
+  font-size: 2.2rem; font-weight: 800; background: #fff; color: #cbbbe6; box-shadow: var(--sombra-suave);
+}
+.palabra-modelo span.hecha { background: var(--g-verde); color: #fff; }
+.palabra-modelo span.ahora { background: var(--g-amarillo); color: #fff; transform: scale(1.12); }
+.palabra-modelo .hueco-palabra { min-width: 18px; background: none; box-shadow: none; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .modos .btn-accion, .escribir .btn-accion { font-size: .85rem; padding: 6px 12px; }
+  .palabra-modelo span { min-width: 34px; height: 40px; font-size: 1.5rem; }
+}
