@@ -534,3 +534,22 @@ main { padding-top: 18px; }
 .miniatura-dibujo.carpeta img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; transform: rotate(-3deg); box-shadow: 0 4px 10px rgba(47,33,71,.15); background: #fff; border-radius: 8px; }
 .nombre-carpeta { position: absolute; left: 8px; right: 8px; bottom: 8px; font-weight: 800; font-size: clamp(.85rem, 3.5vw, 1.1rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cuenta { position: absolute; top: 8px; right: 8px; background: var(--g-lila); color: #fff; font-weight: 800; border-radius: 999px; padding: 0 10px; font-size: .9rem; }
+
+/* ---------- Categorías de la portada ---------- */
+.rejilla-categorias { grid-template-columns: repeat(2, 1fr); max-width: 720px; margin: 0 auto; }
+.tarjeta-categoria { font-size: clamp(1.5rem, 5vw, 2.2rem); }
+.tarjeta-categoria .ico { font-size: clamp(4rem, 18vw, 6.5rem); }
+@media (min-width: 900px) { .rejilla-categorias { grid-template-columns: repeat(4, 1fr); max-width: none; } }
+.recientes { margin-top: 26px; }
+.recientes-titulo { margin: 0 0 10px; font-size: 1.4rem; font-weight: 800; text-align: center; }
+.rejilla-recientes { display: flex; justify-content: center; gap: 14px; }
+.rejilla-recientes .tarjeta { width: min(30vw, 170px); }
+.rejilla-recientes .tarjeta { font-size: 1.05rem; }
+.rejilla-recientes .tarjeta .ico { font-size: clamp(2.4rem, 10vw, 3.4rem); }
+.cabecera-categoria {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin: 0 auto 18px; max-width: 520px; padding: 10px 22px; border-radius: 999px;
+  font-size: clamp(1.6rem, 6vw, 2.4rem); font-weight: 800; color: #fff;
+  text-shadow: 0 3px 0 rgba(0,0,0,.15); box-shadow: var(--sombra);
+}
+.cabecera-categoria .ico { font-size: 1.3em; }

@@ -136,25 +136,72 @@
     { ruta: "videos", ico: "📺", nombre: "Vídeos", clase: "c-cian", voz: "Vídeos" },
   ];
 
+  /* Categorías de la portada. Un juego nuevo que no esté en ninguna lista va a «Jugar». */
+  const CATEGORIAS = [
+    { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras"] },
+    { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "puzle", "burbujas", "tarta"] },
+    { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "musica"] },
+    { id: "ver", ico: "📺", nombre: "Ver", clase: "c-lila", rutas: ["videos"] },
+  ];
+  const todasSecciones = () => SECCIONES.concat((window.JUEGOS_EXTRA || []).map(j => ({ ...j, voz: j.nombre })));
+  const seccion = (ruta) => todasSecciones().find(s => s.ruta === ruta);
+  const categoriaDe = (ruta) => CATEGORIAS.find(c => c.rutas.includes(ruta)) || CATEGORIAS[1];
+  const seccionesDe = (cat) => {
+    const conocidas = new Set(CATEGORIAS.flatMap(c => c.rutas));
+    const lista = cat.rutas.map(seccion).filter(Boolean);
+    if (cat.id === "jugar") todasSecciones().forEach(s => { if (!conocidas.has(s.ruta)) lista.push(s); });
+    return lista;
+  };
+
+  // «Lo último»: los 3 juegos usados más recientemente
+  const leerRecientes = () => { try { return JSON.parse(localStorage.getItem("recientes") || "[]"); } catch (e) { return []; } };
+  const apuntarReciente = (ruta) => {
+    const r = [ruta, ...leerRecientes().filter(x => x !== ruta)].slice(0, 3);
+    try { localStorage.setItem("recientes", JSON.stringify(r)); } catch (e) {}
+  };
+
+  const tarjetaSeccion = (s) => {
+    const b = h(`<button class="tarjeta ${s.clase}"><span class="ico">${s.ico}</span>${s.nombre}</button>`);
+    b.onclick = () => { decir(s.voz); location.hash = "#/" + s.ruta; };
+    return b;
+  };
+
   function portada() {
     const v = h(`<section>
       <div class="saludo">
         <div class="avatar" id="avatar"><img src="/img/maria.png" alt="María"></div>
         <p class="hola">¡Hola, María!</p>
       </div>
-      <div class="rejilla"></div>
+      <div class="rejilla rejilla-categorias"></div>
+      <div class="recientes oculto"><p class="recientes-titulo">⭐ Lo último</p><div class="rejilla rejilla-recientes"></div></div>
       <div class="acciones instalar-zona"></div>
     </section>`);
     botonInstalar(v.querySelector(".instalar-zona"));
     // Si todavía no existe img/maria.png, mostramos un dibujo de reserva
     v.querySelector("#avatar img").onerror = function () { this.parentElement.textContent = "👧"; };
-    const rej = v.querySelector(".rejilla");
-    const todas = SECCIONES.slice(0, -1).concat((window.JUEGOS_EXTRA || []).map(j => ({ ...j, voz: j.nombre })), SECCIONES.slice(-1));
-    todas.forEach(s => {
-      const b = h(`<button class="tarjeta ${s.clase}"><span class="ico">${s.ico}</span>${s.nombre}</button>`);
-      b.onclick = () => { decir(s.voz); location.hash = "#/" + s.ruta; };
+    const rej = v.querySelector(".rejilla-categorias");
+    CATEGORIAS.forEach(c => {
+      const b = h(`<button class="tarjeta tarjeta-categoria ${c.clase}"><span class="ico">${c.ico}</span>${c.nombre}</button>`);
+      b.onclick = () => { decir(c.nombre); location.hash = "#/cat/" + c.id; };
       rej.appendChild(b);
     });
+    const rec = leerRecientes().map(seccion).filter(Boolean);
+    if (rec.length) {
+      v.querySelector(".recientes").classList.remove("oculto");
+      rec.forEach(s => v.querySelector(".rejilla-recientes").appendChild(tarjetaSeccion(s)));
+    }
+    return v;
+  }
+
+  function categoria(id) {
+    const c = CATEGORIAS.find(x => x.id === id);
+    if (!c) return portada();
+    const v = h(`<section class="categoria">
+      <div class="cabecera-categoria ${c.clase}"><span class="ico">${c.ico}</span>${c.nombre}</div>
+      <div class="rejilla"></div>
+    </section>`);
+    const rej = v.querySelector(".rejilla");
+    seccionesDe(c).forEach(s => rej.appendChild(tarjetaSeccion(s)));
     return v;
   }
 
@@ -893,7 +940,8 @@
     else if (ruta === "colorear" && extra === "cat" && partes[2]) vista = colorearCarpeta(decodeURIComponent(partes[2]), partes[3] !== undefined ? decodeURIComponent(partes[3]) : undefined);
     else if (ruta === "colorear" && extra && extra.startsWith("mio-")) vista = colorearMio(Number(extra.slice(4)));
     else if (ruta === "colorear" && extra) vista = colorearDibujo(extra);
-    else if (RUTAS[ruta]) vista = RUTAS[ruta]();
+    else if (ruta === "cat" && extra) vista = categoria(extra);
+    else if (RUTAS[ruta]) { vista = RUTAS[ruta](); apuntarReciente(ruta); }
     else vista = portada();
     btnCasa.classList.toggle("oculto", !ruta);
     app.replaceChildren(vista);
@@ -904,7 +952,10 @@
     const ruta = location.hash.replace(/^#\/?/, "").split("/")[0];
     const partes = location.hash.replace(/^#\/?/, "").split("/");
     if (ruta === "colorear" && partes[1] === "cat" && partes.length > 3) { location.hash = "#/" + partes.slice(0, 3).join("/"); return; }
-    location.hash = ruta === "video" ? "#/videos" : (ruta === "colorear" && partes[1]) ? "#/colorear" : "#/";
+    if (ruta === "video") { location.hash = "#/videos"; return; }
+    if (ruta === "colorear" && partes[1]) { location.hash = "#/colorear"; return; }
+    // Desde un juego se vuelve a su categoría; desde la categoría, a la portada
+    location.hash = (ruta && ruta !== "cat" && RUTAS[ruta]) ? "#/cat/" + categoriaDe(ruta).id : "#/";
   };
   window.addEventListener("hashchange", navegar);
   navegar();
