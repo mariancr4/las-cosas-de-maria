@@ -1328,7 +1328,7 @@
     refrescarAlVolver(v);
     if (!listaVideos.length) { v.appendChild(h(`<div class="aviso"><div class="ico">📺</div><p>¡Pronto habrá vídeos aquí!</p></div>`)); return v; }
     const cats = categoriasVideos();
-    if (cat === undefined && cats.length > 1) {
+    if (cat === undefined) {
       const rej = h(`<div class="rejilla rejilla-carpetas-video"></div>`);
       cats.forEach(c => {
         const primero = listaVideos.find(x => (x.categoria || "Vídeos") === c);
