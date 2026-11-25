@@ -133,6 +133,7 @@
     { ruta: "pintar", ico: "🖍️", nombre: "Pintar", clase: "c-verde", voz: "Pintar" },
     { ruta: "colorear", ico: "🖌️", nombre: "Colorear", clase: "c-lila2", voz: "Colorear" },
     { ruta: "musica", ico: "🎹", nombre: "Música", clase: "c-naranja", voz: "Música" },
+    { ruta: "fotos", ico: "📸", nombre: "Fotos", clase: "c-naranja", voz: "Fotos" },
     { ruta: "videos", ico: "📺", nombre: "Vídeos", clase: "c-cian", voz: "Vídeos" },
   ];
 
@@ -140,7 +141,7 @@
   const CATEGORIAS = [
     { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras"] },
     { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "puzle", "burbujas", "tarta"] },
-    { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "musica"] },
+    { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "musica", "fotos"] },
     { id: "ver", ico: "📺", nombre: "Ver", clase: "c-lila", rutas: ["videos"] },
   ];
   const todasSecciones = () => SECCIONES.concat((window.JUEGOS_EXTRA || []).map(j => ({ ...j, voz: j.nombre })));
@@ -885,6 +886,124 @@
     return v;
   }
 
+  /* ---------- Fotos con filtros y pegatinas ----------
+     La cámara solo se usa en este dispositivo: las fotos no se suben a ningún sitio. */
+  const FILTROS = [
+    { ico: "🙂", f: "none" },
+    { ico: "🖤", f: "grayscale(1) contrast(1.1)" },
+    { ico: "🧸", f: "sepia(.85) saturate(1.2)" },
+    { ico: "🌸", f: "saturate(1.6) hue-rotate(-25deg) brightness(1.08)" },
+    { ico: "🌊", f: "saturate(1.4) hue-rotate(170deg)" },
+    { ico: "✨", f: "saturate(2.2) contrast(1.15)" },
+  ];
+  const PEGATINAS = ["👑", "🎀", "👓", "🌸", "⭐", "💖", "🌈", "🦄", "🐱", "🐶", "🦋", "🍓"];
+
+  function fotos() {
+    const v = h(`<section class="fotos">
+      <div class="visor">
+        <video playsinline muted autoplay></video>
+        <div class="capa-pegatinas"></div>
+        <img class="foto-hecha oculto" alt="Mi foto">
+        <div class="aviso-camara oculto"></div>
+      </div>
+      <div class="fila filtros"></div>
+      <div class="fila pegatinas"></div>
+      <div class="acciones">
+        <button class="btn-accion btn-disparar" data-a="foto">📸 ¡Foto!</button>
+        <button class="btn-accion oculto" data-a="guardar">💾 Guardar</button>
+        <button class="btn-accion oculto" data-a="otra">🔄 Otra</button>
+        <button class="btn-accion" data-a="limpiar">🧽 Quitar dibujitos</button>
+      </div>
+    </section>`);
+    const video = v.querySelector("video"), capa = v.querySelector(".capa-pegatinas");
+    const hecha = v.querySelector(".foto-hecha"), aviso = v.querySelector(".aviso-camara");
+    const btn = (a) => v.querySelector(`[data-a="${a}"]`);
+    let flujo = null, filtro = "none", pegatina = PEGATINAS[0], ultima = null;
+
+    const avisar = (txt) => { aviso.innerHTML = txt; aviso.classList.remove("oculto"); };
+    // La cámara solo se enciende al pulsar el botón
+    const encender = () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { avisar("📷<br>Este navegador no deja usar la cámara aquí."); return; }
+      aviso.classList.add("oculto");
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false })
+        .then(s => { flujo = s; video.srcObject = s; return video.play(); })
+        .catch(() => { avisar("📷<br>Hace falta dar permiso para usar la cámara.<br><small>Pídeselo a un mayor.</small>"); });
+    };
+    aviso.classList.remove("oculto");
+    aviso.replaceChildren(h(`<button class="btn-accion btn-encender">📷 Encender la cámara</button>`));
+    aviso.querySelector("button").onclick = encender;
+    v._limpiar = () => { if (flujo) flujo.getTracks().forEach(t => t.stop()); };
+
+    FILTROS.forEach((x, i) => {
+      const b = h(`<button class="chip${i === 0 ? " activo" : ""}">${x.ico}</button>`);
+      b.onclick = () => {
+        filtro = x.f; video.style.filter = x.f;
+        v.querySelectorAll(".filtros .activo").forEach(y => y.classList.remove("activo")); b.classList.add("activo"); nota(700, .08);
+      };
+      v.querySelector(".filtros").appendChild(b);
+    });
+    PEGATINAS.forEach((p, i) => {
+      const b = h(`<button class="chip${i === 0 ? " activo" : ""}">${p}</button>`);
+      b.onclick = () => { pegatina = p; v.querySelectorAll(".pegatinas .activo").forEach(y => y.classList.remove("activo")); b.classList.add("activo"); nota(800, .08); };
+      v.querySelector(".pegatinas").appendChild(b);
+    });
+
+    // Tocar la imagen pone la pegatina elegida; tocar una pegatina la quita
+    capa.addEventListener("pointerdown", (e) => {
+      if (e.target.classList.contains("pegatina")) { e.target.remove(); nota(300, .1); return; }
+      const r = capa.getBoundingClientRect();
+      const p = h(`<span class="pegatina">${pegatina}</span>`);
+      p.style.left = ((e.clientX - r.left) / r.width * 100) + "%";
+      p.style.top = ((e.clientY - r.top) / r.height * 100) + "%";
+      capa.appendChild(p); nota(600 + azar(300), .12);
+    });
+
+    btn("foto").onclick = () => {
+      if (!flujo || !video.videoWidth) return;
+      const w = video.videoWidth, hh = video.videoHeight;
+      const c = document.createElement("canvas"); c.width = w; c.height = hh;
+      const ctx = c.getContext("2d");
+      ctx.save(); ctx.translate(w, 0); ctx.scale(-1, 1); // como un espejo, igual que se ve en pantalla
+      ctx.filter = filtro; ctx.drawImage(video, 0, 0, w, hh); ctx.restore();
+      ctx.filter = "none";
+      // El vídeo se muestra recortado (object-fit: cover): calculamos dónde cae cada pegatina
+      const r = capa.getBoundingClientRect();
+      const k = Math.max(r.width / w, r.height / hh), ox = (w * k - r.width) / 2, oy = (hh * k - r.height) / 2;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      capa.querySelectorAll(".pegatina").forEach(p => {
+        const pr = p.getBoundingClientRect();
+        const x = (pr.left + pr.width / 2 - r.left + ox) / k, y = (pr.top + pr.height / 2 - r.top + oy) / k;
+        ctx.font = `${pr.height / k}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+        ctx.fillText(p.textContent, x, y);
+      });
+      nota(1200, .05, "square"); setTimeout(() => nota(900, .08, "square"), 60);
+      v.querySelector(".visor").classList.add("flash"); setTimeout(() => v.querySelector(".visor").classList.remove("flash"), 300);
+      c.toBlob(b => {
+        ultima = b; hecha.src = URL.createObjectURL(b); hecha.classList.remove("oculto");
+        btn("foto").classList.add("oculto"); btn("guardar").classList.remove("oculto"); btn("otra").classList.remove("oculto");
+      }, "image/jpeg", .92);
+    };
+    btn("otra").onclick = () => {
+      hecha.classList.add("oculto"); btn("foto").classList.remove("oculto");
+      btn("guardar").classList.add("oculto"); btn("otra").classList.add("oculto");
+    };
+    btn("limpiar").onclick = () => { capa.querySelectorAll(".pegatina").forEach(p => p.remove()); nota(300, .2); };
+    btn("guardar").onclick = async () => {
+      if (!ultima) return;
+      const nombre = "foto-de-maria-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".jpg";
+      const archivo = new File([ultima], nombre, { type: "image/jpeg" });
+      // En iPad/iPhone «Compartir → Guardar imagen» la deja en Fotos
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        try { await navigator.share({ files: [archivo] }); celebrar("📸"); return; } catch (e) { if (e.name === "AbortError") return; }
+      }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(ultima); a.download = nombre;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      celebrar("📸");
+    };
+    return v;
+  }
+
   /* ---------- Vídeos ---------- */
   const VIDEOS = (window.VIDEOS_MARIA || []).filter(x => x && /^[\w-]{11}$/.test(x.id));
   function videos() {
@@ -930,7 +1049,7 @@
   const EXTRA = window.JUEGOS_EXTRA || [];
 
   /* ---------- Navegación ---------- */
-  const RUTAS = { colores, formas, memoria, contar, pintar, colorear, musica, videos };
+  const RUTAS = { colores, formas, memoria, contar, pintar, colorear, musica, videos, fotos };
   EXTRA.forEach(j => { RUTAS[j.ruta] = () => j.crear(H); });
   let vistaActual = null;
   function navegar() {
