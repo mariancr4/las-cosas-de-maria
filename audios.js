@@ -1,5 +1,6 @@
 /* Frases con voz grabada (archivos de la carpeta audio/). */
 window.AUDIOS_MARIA = [
+  "aprender",
   "bravo-maria",
   "colores",
   "contar",
