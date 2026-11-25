@@ -3,6 +3,7 @@
 
   const app = document.getElementById("app");
   const btnCasa = document.getElementById("btnCasa");
+  const btnAtras = document.getElementById("btnAtras");
   const btnSonido = document.getElementById("btnSonido");
   const premio = document.getElementById("premio");
 
@@ -1577,20 +1578,23 @@
     else if (RUTAS[ruta]) { vista = RUTAS[ruta](); apuntarReciente(ruta); }
     else vista = portada();
     btnCasa.classList.toggle("oculto", !ruta);
+    btnAtras.classList.toggle("oculto", !ruta || destinoAtras() === "#/");
     app.replaceChildren(vista);
     vistaActual = vista;
     window.scrollTo(0, 0);
   }
-  btnCasa.onclick = () => {
-    const ruta = location.hash.replace(/^#\/?/, "").split("/")[0];
+  // ⬅️ Atrás: sube un nivel (juego → su categoría, dibujo → lista…). 🏠 Casa: siempre al inicio.
+  function destinoAtras() {
     const partes = location.hash.replace(/^#\/?/, "").split("/");
-    if (ruta === "colorear" && partes[1] === "cat" && partes.length > 3) { location.hash = "#/" + partes.slice(0, 3).join("/"); return; }
-    if (ruta === "video" || (ruta === "videos" && partes[1])) { location.hash = "#/videos"; return; }
-    if (ruta === "mayores") { location.hash = "#/"; return; }
-    if (ruta === "colorear" && partes[1]) { location.hash = "#/colorear"; return; }
-    // Desde un juego se vuelve a su categoría; desde la categoría, a la portada
-    location.hash = (ruta && ruta !== "cat" && RUTAS[ruta]) ? "#/cat/" + categoriaDe(ruta).id : "#/";
-  };
+    const ruta = partes[0];
+    if (!ruta || ruta === "cat" || ruta === "mayores") return "#/";
+    if (ruta === "colorear" && partes[1] === "cat" && partes.length > 3) return "#/" + partes.slice(0, 3).join("/");
+    if (ruta === "video" || (ruta === "videos" && partes[1])) return "#/videos";
+    if (ruta === "colorear" && partes[1]) return "#/colorear";
+    return RUTAS[ruta] ? "#/cat/" + categoriaDe(ruta).id : "#/";
+  }
+  btnAtras.onclick = () => { location.hash = destinoAtras(); };
+  btnCasa.onclick = () => { location.hash = "#/"; };
   window.addEventListener("hashchange", navegar);
   navegar();
 

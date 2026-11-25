@@ -801,3 +801,6 @@ main { padding-top: 18px; }
 .rejilla-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
 .foto-guardada { display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border-radius: 16px; padding: 8px; box-shadow: var(--sombra); font-weight: 700; text-align: center; }
 .foto-guardada img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; }
+
+/* Botón atrás junto a la casita */
+.btn-atras { margin-right: 10px; }
