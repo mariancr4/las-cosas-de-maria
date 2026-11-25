@@ -226,8 +226,8 @@
 
   /* Categorías de la portada. Un juego nuevo que no esté en ninguna lista va a «Jugar». */
   const CATEGORIAS = [
-    { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras", "puntos", "laberinto"] },
-    { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "puzle", "burbujas", "tarta", "dientes"] },
+    { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras", "puntos", "laberinto", "quienes"] },
+    { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "misparejas", "puzle", "burbujas", "tarta", "dientes"] },
     { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "rasca", "musica", "fotos"] },
     { id: "ver", ico: "📺", nombre: "Ver", clase: "c-lila", rutas: ["videos"] },
   ];
@@ -1373,7 +1373,7 @@
     const panel = () => {
       const t = h(`<div class="pestanas-mayores">
         <button class="activa" data-p="videos">📺 Vídeos</button><button data-p="juegos">🎲 Juegos</button>
-        <button data-p="dibujos">🖍️ Dibujos</button><button data-p="sonido">🔊 Sonido</button></div>`);
+        <button data-p="dibujos">🖍️ Dibujos</button><button data-p="fotos">📷 Mis fotos</button><button data-p="sonido">🔊 Sonido</button></div>`);
       v.appendChild(t);
       const p = h(`<div class="panel-mayores" data-p="videos">
         <h2>📺 Añadir un vídeo</h2>
@@ -1517,6 +1517,9 @@
         }).catch(() => {});
       };
       pintarDibujos();
+
+      // 📷 Mis fotos: fotos propias para «Mis parejas» y «¿Quién es?» (solo en este dispositivo; ver juegos5.js)
+      if (window.FotosMaria) v.appendChild(window.FotosMaria.panel(h));
 
       // 🔊 Sonido de este dispositivo
       const ps = h(`<div class="panel-mayores oculto" data-p="sonido"><h2>🔊 Sonido</h2><p class="ayuda-mayores">Esto se guarda solo en este dispositivo.</p><div class="lista-interruptores"></div></div>`);
