@@ -1,37 +1,69 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <!-- Niña original: pelo moreno oscuro con dos coletas y piel muy clarita -->
-  <defs><linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8dcff"/><stop offset="1" stop-color="#c9a8ff"/></linearGradient></defs>
+  <!-- Muñequita original: niña morena, piel muy clarita y dos coletas -->
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8dcff"/><stop offset="1" stop-color="#d2b8ff"/></linearGradient>
+    <linearGradient id="pelo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2519"/><stop offset="1" stop-color="#1f130d"/></linearGradient>
+    <radialGradient id="piel" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#fff6f0"/><stop offset="1" stop-color="#fbe2d6"/></radialGradient>
+    <radialGradient id="iris" cx=".5" cy=".35" r=".7"><stop offset="0" stop-color="#8a5a3c"/><stop offset="1" stop-color="#3b2216"/></radialGradient>
+    <linearGradient id="vestido" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9ec4"/><stop offset="1" stop-color="#ff6fa6"/></linearGradient>
+  </defs>
   <rect width="200" height="200" fill="url(#fondo)"/>
-  <!-- dos coletas -->
-  <path d="M46 70 C22 66 8 92 14 122 C18 142 30 154 26 168 C44 160 52 138 50 116 C49 100 54 84 46 70 Z" fill="#2a1b14"/>
-  <path d="M154 70 C178 66 192 92 186 122 C182 142 170 154 174 168 C156 160 148 138 150 116 C151 100 146 84 154 70 Z" fill="#2a1b14"/>
-  <!-- gomas de las coletas -->
-  <circle cx="44" cy="76" r="8" fill="#ff5f9e"/><circle cx="41" cy="73" r="2.5" fill="#fff" opacity=".7"/>
-  <circle cx="156" cy="76" r="8" fill="#ff5f9e"/><circle cx="153" cy="73" r="2.5" fill="#fff" opacity=".7"/>
-  <!-- pelo de arriba -->
-  <path d="M48 100 C44 54 72 30 100 30 C128 30 156 54 152 100 Z" fill="#2a1b14"/>
-  <!-- cuello y cuerpo -->
-  <rect x="88" y="140" width="24" height="22" rx="8" fill="#fbe3d6" stroke="#4a3b5c" stroke-width="3.5"/>
-  <path d="M46 200 C50 170 72 156 100 156 C128 156 150 170 154 200 Z" fill="#ff8fb1" stroke="#4a3b5c" stroke-width="3.5"/>
-  <path d="M84 158 Q100 172 116 158" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
-  <!-- cara -->
-  <ellipse cx="100" cy="102" rx="50" ry="54" fill="#fdeee6" stroke="#4a3b5c" stroke-width="3.5"/>
-  <!-- orejas -->
-  <ellipse cx="51" cy="106" rx="8" ry="11" fill="#fbe3d6" stroke="#4a3b5c" stroke-width="3.5"/>
-  <ellipse cx="149" cy="106" rx="8" ry="11" fill="#fbe3d6" stroke="#4a3b5c" stroke-width="3.5"/>
+  <circle cx="30" cy="34" r="5" fill="#fff" opacity=".6"/><circle cx="172" cy="28" r="3.5" fill="#fff" opacity=".6"/><circle cx="178" cy="150" r="4" fill="#fff" opacity=".5"/>
+
+  <!-- coletas (detrás) -->
+  <path d="M46 92 C26 88 14 104 16 124 C18 140 30 146 26 162 C24 170 18 174 20 176 C34 174 44 160 44 144 C44 128 52 112 56 100 Z" fill="url(#pelo)"/>
+  <path d="M154 92 C174 88 186 104 184 124 C182 140 170 146 174 162 C176 170 182 174 180 176 C166 174 156 160 156 144 C156 128 148 112 144 100 Z" fill="url(#pelo)"/>
+  <path d="M24 116 C24 128 30 136 32 146" fill="none" stroke="#6b4a36" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M176 116 C176 128 170 136 168 146" fill="none" stroke="#6b4a36" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+
+  <!-- cuerpo y vestido -->
+  <path d="M90 146 h20 v14 a10 10 0 0 1 -20 0 Z" fill="#fbe2d6"/>
+  <path d="M42 200 C46 172 68 156 100 156 C132 156 154 172 158 200 Z" fill="url(#vestido)"/>
+  <path d="M100 158 C90 158 80 160 74 166 C80 176 94 176 100 166 C106 176 120 176 126 166 C120 160 110 158 100 158 Z" fill="#fff"/>
+  <circle cx="100" cy="182" r="3" fill="#fff" opacity=".85"/><circle cx="100" cy="194" r="3" fill="#fff" opacity=".85"/>
+
+  <!-- pelo de detrás de la cabeza -->
+  <path d="M46 104 C42 58 70 36 100 36 C130 36 158 58 154 104 C150 122 50 122 46 104 Z" fill="url(#pelo)"/>
+
+  <!-- orejas y cara -->
+  <ellipse cx="50" cy="108" rx="8" ry="10" fill="#f8d8ca"/>
+  <ellipse cx="150" cy="108" rx="8" ry="10" fill="#f8d8ca"/>
+  <ellipse cx="100" cy="104" rx="49" ry="47" fill="url(#piel)"/>
+
   <!-- flequillo -->
-  <path d="M50 96 C48 58 72 40 100 40 C128 40 152 58 150 96 C140 84 132 70 126 60 C118 76 100 82 86 80 C78 88 64 94 50 96 Z" fill="#2a1b14"/>
-  <!-- ojos -->
-  <ellipse cx="80" cy="106" rx="7" ry="9" fill="#2a1b14"/>
-  <ellipse cx="120" cy="106" rx="7" ry="9" fill="#2a1b14"/>
-  <circle cx="82" cy="103" r="2.5" fill="#fff"/>
-  <circle cx="122" cy="103" r="2.5" fill="#fff"/>
+  <path d="M51 100 C48 64 72 46 100 46 C128 46 152 64 149 100 C145 90 140 80 134 72 C130 84 120 88 110 84 C112 76 110 70 106 66 C100 78 86 86 70 86 C66 92 58 98 51 100 Z" fill="url(#pelo)"/>
+  <path d="M74 56 C86 50 104 50 116 54" fill="none" stroke="#7a5640" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+
+  <!-- gomas con lacitos -->
+  <g transform="translate(46 92)"><path d="M0 0 L-12 -9 L-12 9 Z M0 0 L12 -9 L12 9 Z" fill="#ff5f9e"/><circle r="5" fill="#ff86b6"/><circle cx="-1.5" cy="-1.5" r="1.6" fill="#fff" opacity=".8"/></g>
+  <g transform="translate(154 92)"><path d="M0 0 L-12 -9 L-12 9 Z M0 0 L12 -9 L12 9 Z" fill="#ff5f9e"/><circle r="5" fill="#ff86b6"/><circle cx="-1.5" cy="-1.5" r="1.6" fill="#fff" opacity=".8"/></g>
+
   <!-- cejas -->
-  <path d="M70 92 Q80 86 90 91 M110 91 Q120 86 130 92" fill="none" stroke="#2a1b14" stroke-width="3" stroke-linecap="round"/>
-  <!-- mofletes -->
-  <ellipse cx="68" cy="124" rx="10" ry="6" fill="#ffb6c8" opacity=".75"/>
-  <ellipse cx="132" cy="124" rx="10" ry="6" fill="#ffb6c8" opacity=".75"/>
-  <!-- nariz y sonrisa -->
-  <path d="M98 116 Q100 120 102 116" fill="none" stroke="#e9b9a6" stroke-width="3" stroke-linecap="round"/>
-  <path d="M86 130 Q100 144 114 130" fill="#e8576f" stroke="#c43d57" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M72 92 Q80 88 88 91" fill="none" stroke="#3a2519" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M112 91 Q120 88 128 92" fill="none" stroke="#3a2519" stroke-width="2.6" stroke-linecap="round"/>
+
+  <!-- ojos grandes y brillantes -->
+  <g>
+    <ellipse cx="80" cy="108" rx="9.5" ry="11.5" fill="#fff"/>
+    <ellipse cx="80.5" cy="109" rx="8" ry="10" fill="url(#iris)"/>
+    <circle cx="80.5" cy="110" r="4.2" fill="#1a0f0a"/>
+    <circle cx="83.5" cy="104.5" r="3.2" fill="#fff"/><circle cx="77" cy="113.5" r="1.5" fill="#fff" opacity=".85"/>
+    <path d="M70 101 Q80 94 90 101" fill="none" stroke="#1f130d" stroke-width="3" stroke-linecap="round"/>
+    <path d="M70 102 l-4 -3 M72 99 l-3 -4" stroke="#1f130d" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <g>
+    <ellipse cx="120" cy="108" rx="9.5" ry="11.5" fill="#fff"/>
+    <ellipse cx="119.5" cy="109" rx="8" ry="10" fill="url(#iris)"/>
+    <circle cx="119.5" cy="110" r="4.2" fill="#1a0f0a"/>
+    <circle cx="122.5" cy="104.5" r="3.2" fill="#fff"/><circle cx="116" cy="113.5" r="1.5" fill="#fff" opacity=".85"/>
+    <path d="M110 101 Q120 94 130 101" fill="none" stroke="#1f130d" stroke-width="3" stroke-linecap="round"/>
+    <path d="M130 102 l4 -3 M128 99 l3 -4" stroke="#1f130d" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- mofletes, nariz y boca -->
+  <ellipse cx="67" cy="125" rx="9" ry="5.5" fill="#ffadc4" opacity=".7"/>
+  <ellipse cx="133" cy="125" rx="9" ry="5.5" fill="#ffadc4" opacity=".7"/>
+  <path d="M98 120 Q100 122.5 102 120" fill="none" stroke="#e8b3a0" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M89 129 Q100 142 111 129 Q100 133 89 129 Z" fill="#d9465f"/>
+  <path d="M94 134 Q100 139 106 134 Q100 132 94 134 Z" fill="#ff8fa3"/>
 </svg>
