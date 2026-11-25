@@ -20,8 +20,14 @@
   btnSonido.onclick = () => {
     sonido = !sonido; pintarSonido();
     try { localStorage.setItem("sonido", sonido ? "si" : "no"); } catch (e) {}
-    if (!sonido && "speechSynthesis" in window) speechSynthesis.cancel();
+    if (!sonido) callar();
   };
+
+  // Voces grabadas (ElevenLabs) en la carpeta audio/. Si una frase no tiene MP3,
+  // se usa la voz del navegador como reserva.
+  const AUDIOS = new Set(window.AUDIOS_MARIA || []);
+  const nombreAudio = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   let vozES = null;
   const cargarVoz = () => {
@@ -30,10 +36,8 @@
     vozES = voces.find(v => v.lang === "es-ES") || voces.find(v => v.lang && v.lang.startsWith("es")) || null;
   };
   if ("speechSynthesis" in window) { cargarVoz(); speechSynthesis.onvoiceschanged = cargarVoz; }
-
-  const decir = (texto) => {
-    if (!sonido || !("speechSynthesis" in window)) return;
-    speechSynthesis.cancel();
+  const vozNavegador = (texto) => {
+    if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(texto);
     u.lang = "es-ES"; u.rate = 0.9; u.pitch = 1.2;
     if (vozES) u.voice = vozES;
@@ -41,10 +45,56 @@
   };
 
   let audioCtx = null;
+  const ctxAudio = () => (audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)());
+  const buffers = new Map();
+  const cargarBuffer = (n) => {
+    if (!buffers.has(n)) {
+      const p = fetch("/audio/" + n + ".mp3")
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(b => new Promise((ok, mal) => ctxAudio().decodeAudioData(b, ok, mal)));
+      p.catch(() => buffers.delete(n));
+      buffers.set(n, p);
+    }
+    return buffers.get(n);
+  };
+  // El primer toque desbloquea el audio (iPad/iPhone) y precarga las voces
+  let precargado = false;
+  document.addEventListener("pointerdown", () => {
+    try { ctxAudio().resume(); } catch (e) {}
+    if (!precargado) { precargado = true; AUDIOS.forEach(n => cargarBuffer(n).catch(() => {})); }
+  }, true);
+
+  let turno = 0, fuente = null, elAudio = null;
+  const callar = () => {
+    turno++;
+    if (fuente) { try { fuente.stop(); } catch (e) {} fuente = null; }
+    if (elAudio) { elAudio.pause(); elAudio = null; }
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  };
+
+  const decir = (texto) => {
+    if (!sonido) return;
+    callar();
+    const n = nombreAudio(texto);
+    if (!AUDIOS.has(n)) return vozNavegador(texto);
+    const mio = turno;
+    cargarBuffer(n).then(buf => {
+      if (mio !== turno) return;
+      const ctx = ctxAudio(), src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start();
+      fuente = src;
+    }).catch(() => {
+      // Abriendo index.html con doble clic fetch no funciona: probamos con <audio>
+      if (mio !== turno) return;
+      elAudio = new Audio("/audio/" + n + ".mp3");
+      elAudio.play().catch(() => { if (mio === turno) vozNavegador(texto); });
+    });
+  };
+
   const nota = (frec, dur = 0.35, tipo = "sine") => {
     if (!sonido) return;
     try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      ctxAudio();
       const o = audioCtx.createOscillator(), g = audioCtx.createGain();
       o.type = tipo; o.frequency.value = frec;
       g.gain.setValueAtTime(0.3, audioCtx.currentTime);
@@ -837,7 +887,7 @@
     const partes = location.hash.replace(/^#\/?/, "").split("/");
     const [ruta, extra] = partes;
     if (vistaActual && vistaActual._limpiar) vistaActual._limpiar();
-    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    callar();
     let vista;
     if (ruta === "video" && extra) vista = video(extra);
     else if (ruta === "colorear" && extra === "cat" && partes[2]) vista = colorearCarpeta(decodeURIComponent(partes[2]), partes[3] !== undefined ? decodeURIComponent(partes[3]) : undefined);
