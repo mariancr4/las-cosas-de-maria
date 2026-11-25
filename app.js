@@ -77,7 +77,8 @@
   // El primer toque desbloquea el audio (iPad/iPhone) y precarga las voces
   let precargado = false;
   // En iPhone el interruptor de silencio apaga el Web Audio: pedimos sonido como «reproducción»
-  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+  const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  try { if (esIOS && navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
   let desbloqueado = false;
   const desbloquear = () => {
     try {
@@ -134,18 +135,51 @@
     });
   };
 
+  // Plan B para navegadores que no dejan arrancar el Web Audio (p. ej. Safari en algunos Mac):
+  // se genera la nota como un pequeño WAV en memoria y se toca con <audio>.
+  const wavs = new Map();
+  const wavNota = (frec, dur, tipo) => {
+    const k = frec + "|" + dur + "|" + tipo;
+    if (wavs.has(k)) return wavs.get(k);
+    const sr = 22050, n = Math.round(sr * dur), datos = new DataView(new ArrayBuffer(44 + n * 2));
+    const txt = (o, t) => { for (let i = 0; i < t.length; i++) datos.setUint8(o + i, t.charCodeAt(i)); };
+    txt(0, "RIFF"); datos.setUint32(4, 36 + n * 2, true); txt(8, "WAVE"); txt(12, "fmt ");
+    datos.setUint32(16, 16, true); datos.setUint16(20, 1, true); datos.setUint16(22, 1, true);
+    datos.setUint32(24, sr, true); datos.setUint32(28, sr * 2, true); datos.setUint16(32, 2, true); datos.setUint16(34, 16, true);
+    txt(36, "data"); datos.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, fase = (t * frec) % 1;
+      let y = tipo === "triangle" ? 1 - 4 * Math.abs(fase - .5) : tipo === "square" ? (fase < .5 ? 1 : -1) * .6 : Math.sin(2 * Math.PI * fase);
+      y *= .3 * Math.exp(-5 * t / dur) * Math.min(1, i / 60);
+      datos.setInt16(44 + i * 2, Math.max(-1, Math.min(1, y)) * 32767, true);
+    }
+    const url = URL.createObjectURL(new Blob([datos], { type: "audio/wav" }));
+    wavs.set(k, url);
+    return url;
+  };
+  const notaHTML = (frec, dur, tipo) => { try { new Audio(wavNota(frec, dur, tipo)).play().catch(() => {}); } catch (e) {} };
+  const notaWeb = (frec, dur, tipo) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = tipo; o.frequency.value = frec;
+    g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  };
   const nota = (frec, dur = 0.35, tipo = "sine") => {
     if (!sonido) return;
     try {
       ctxAudio();
-      if (audioCtx.state !== "running") audioCtx.resume().catch(() => {});
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.type = tipo; o.frequency.value = frec;
-      g.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + dur);
-    } catch (e) {}
+      if (audioCtx.state === "running") { notaWeb(frec, dur, tipo); return; }
+      // Si el Web Audio no arranca enseguida, tocamos la nota con el plan B
+      let hecho = false;
+      const plan = setTimeout(() => { if (!hecho) { hecho = true; notaHTML(frec, dur, tipo); } }, 150);
+      audioCtx.resume().then(() => {
+        if (hecho) return;
+        hecho = true; clearTimeout(plan);
+        if (audioCtx.state === "running") notaWeb(frec, dur, tipo); else notaHTML(frec, dur, tipo);
+      }).catch(() => { if (!hecho) { hecho = true; clearTimeout(plan); notaHTML(frec, dur, tipo); } });
+    } catch (e) { notaHTML(frec, dur, tipo); }
   };
   const sonBien = () => { nota(523); setTimeout(() => nota(659), 120); setTimeout(() => nota(784, .5), 240); };
   const sonMal = () => nota(220, .3, "triangle");
