@@ -177,8 +177,11 @@
       <div class="acciones instalar-zona"></div>
     </section>`);
     botonInstalar(v.querySelector(".instalar-zona"));
-    // Si todavía no existe img/maria.png, mostramos un dibujo de reserva
-    v.querySelector("#avatar img").onerror = function () { this.parentElement.textContent = "👧"; };
+    // Si todavía no existe img/maria.png, mostramos la muñequita dibujada (img/maria.svg)
+    v.querySelector("#avatar img").onerror = function () {
+      if (!this.src.endsWith("/img/maria.svg")) this.src = "/img/maria.svg";
+      else this.parentElement.textContent = "👧🏻";
+    };
     const rej = v.querySelector(".rejilla-categorias");
     CATEGORIAS.forEach(c => {
       const b = h(`<button class="tarjeta tarjeta-categoria ${c.clase}"><span class="ico">${c.ico}</span>${c.nombre}</button>`);
