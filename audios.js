@@ -5,6 +5,7 @@ window.AUDIOS_MARIA = [
   "contar",
   "fenomenal",
   "formas",
+  "genial",
   "lo-has-conseguido",
   "musica",
   "muy-bien",
