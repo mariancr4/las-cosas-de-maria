@@ -59,10 +59,24 @@
   };
   // El primer toque desbloquea el audio (iPad/iPhone) y precarga las voces
   let precargado = false;
-  document.addEventListener("pointerdown", () => {
-    try { ctxAudio().resume(); } catch (e) {}
+  // En iPhone el interruptor de silencio apaga el Web Audio: pedimos sonido como «reproducción»
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+  let desbloqueado = false;
+  const desbloquear = () => {
+    try {
+      const ctx = ctxAudio();
+      if (ctx.state !== "running") ctx.resume();
+      if (!desbloqueado) { // un sonido mudo dentro del toque deja el audio desbloqueado en iOS
+        desbloqueado = true;
+        const src = ctx.createBufferSource(); src.buffer = ctx.createBuffer(1, 1, 22050);
+        src.connect(ctx.destination); src.start(0);
+      }
+    } catch (e) {}
     if (!precargado) { precargado = true; AUDIOS.forEach(n => cargarBuffer(n).catch(() => {})); }
-  }, true);
+  };
+  ["pointerdown", "touchend", "click", "keydown"].forEach(ev => document.addEventListener(ev, desbloquear, true));
+  // Al volver a la app (o tras una llamada) iOS deja el audio «interrumpido»
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && audioCtx && audioCtx.state !== "running") audioCtx.resume().catch(() => {}); });
 
   let turno = 0, fuente = null, elAudio = null;
   const callar = () => {
@@ -95,6 +109,7 @@
     if (!sonido) return;
     try {
       ctxAudio();
+      if (audioCtx.state !== "running") audioCtx.resume().catch(() => {});
       const o = audioCtx.createOscillator(), g = audioCtx.createGain();
       o.type = tipo; o.frequency.value = frec;
       g.gain.setValueAtTime(0.3, audioCtx.currentTime);
@@ -895,16 +910,26 @@
     { ico: "🌸", f: "saturate(1.6) hue-rotate(-25deg) brightness(1.08)" },
     { ico: "🌊", f: "saturate(1.4) hue-rotate(170deg)" },
     { ico: "✨", f: "saturate(2.2) contrast(1.15)" },
+    { ico: "☀️", f: "sepia(.35) saturate(1.5) brightness(1.08)" },
+    { ico: "❄️", f: "saturate(1.2) hue-rotate(200deg) brightness(1.1)" },
+    { ico: "🦸", f: "contrast(1.8) saturate(2.6)" },
+    { ico: "👽", f: "hue-rotate(90deg) saturate(1.8)" },
+    { ico: "🍇", f: "hue-rotate(260deg) saturate(1.6)" },
+    { ico: "👻", f: "invert(1)" },
+    { ico: "🌙", f: "grayscale(.4) brightness(.75) contrast(1.3) hue-rotate(200deg)" },
+    { ico: "☁️", f: "blur(3px) brightness(1.15) saturate(1.3)" },
   ];
+  const COLORES_PINCEL = ["#ff3b6b", "#ff9f1c", "#ffe02e", "#3ddc84", "#2fa4ff", "#9b5cff", "#ffffff", "#2a1b14"];
   // Safari no aplica ctx.filter: hacemos los filtros a mano en los píxeles
   function filtrarPixeles(ctx, w, h2, f) {
     if (!f || f === "none") return;
     const d = ctx.getImageData(0, 0, w, h2), p = d.data;
     const num = (n, def) => { const m = f.match(new RegExp(n + "\\(([-\\d.]+)")); return m ? parseFloat(m[1]) : def; };
-    const gris = num("grayscale", 0), sepia = num("sepia", 0), sat = num("saturate", 1), con = num("contrast", 1), bri = num("brightness", 1), hue = num("hue-rotate", 0) * Math.PI / 180;
+    const inv = num("invert", 0), gris = num("grayscale", 0), sepia = num("sepia", 0), sat = num("saturate", 1), con = num("contrast", 1), bri = num("brightness", 1), hue = num("hue-rotate", 0) * Math.PI / 180;
     const cs = Math.cos(hue), sn = Math.sin(hue);
     for (let i = 0; i < p.length; i += 4) {
       let r = p[i], g = p[i + 1], b = p[i + 2];
+      if (inv) { r += (255 - 2 * r) * inv; g += (255 - 2 * g) * inv; b += (255 - 2 * b) * inv; }
       if (gris) { const l = .2126 * r + .7152 * g + .0722 * b; r += (l - r) * gris; g += (l - g) * gris; b += (l - b) * gris; }
       if (sepia) { const sr = .393 * r + .769 * g + .189 * b, sg = .349 * r + .686 * g + .168 * b, sb = .272 * r + .534 * g + .131 * b; r += (sr - r) * sepia; g += (sg - g) * sepia; b += (sb - b) * sepia; }
       if (sat !== 1) { const l = .2126 * r + .7152 * g + .0722 * b; r = l + (r - l) * sat; g = l + (g - l) * sat; b = l + (b - l) * sat; }
@@ -926,19 +951,25 @@
     const v = h(`<section class="fotos">
       <div class="visor">
         <video playsinline muted autoplay></video>
+        <canvas class="vista-camara"></canvas>
+        <canvas class="capa-pintura"></canvas>
         <div class="capa-pegatinas"></div>
         <img class="foto-hecha oculto" alt="Mi foto">
         <div class="aviso-camara oculto"></div>
       </div>
       <div class="titulo-fila">🎨 Filtros</div>
       <div class="fila filtros"></div>
-      <div class="titulo-fila">✨ Dibujitos</div>
+      <div class="fila modos">
+        <button class="btn-modo activo" data-modo="pegar">✨ Dibujitos</button>
+        <button class="btn-modo" data-modo="pintar">🖌️ Pintar</button>
+      </div>
       <div class="fila pegatinas"></div>
+      <div class="fila pinceles oculto"></div>
       <div class="acciones">
         <button class="btn-accion btn-disparar" data-a="foto">📸 ¡Foto!</button>
         <button class="btn-accion oculto" data-a="guardar">💾 Guardar</button>
         <button class="btn-accion oculto" data-a="otra">🔄 Otra</button>
-        <button class="btn-accion" data-a="limpiar">🧽 Quitar dibujitos</button>
+        <button class="btn-accion" data-a="limpiar">🧽 Borrar todo</button>
       </div>
     </section>`);
     const video = v.querySelector("video"), capa = v.querySelector(".capa-pegatinas");
@@ -981,10 +1012,42 @@
         avisar(msg);
         return;
       }
+      video.muted = true; video.playsInline = true;
+      video.setAttribute("playsinline", ""); video.setAttribute("muted", ""); video.setAttribute("autoplay", "");
       video.srcObject = flujo;
-      video.setAttribute("playsinline", ""); video.muted = true;
-      const reproducir = () => video.play().catch(() => {});
+      const reproducir = () => video.play().catch(() => {
+        // Si el navegador no deja arrancar el vídeo solo, un toque lo arranca
+        aviso.replaceChildren(h(`<button class="btn-accion btn-encender">👆 Toca para ver la cámara</button>`));
+        aviso.classList.remove("oculto");
+        aviso.querySelector("button").onclick = () => { aviso.classList.add("oculto"); video.play().catch(() => {}); };
+      });
       if (video.readyState >= 1) reproducir(); else video.onloadedmetadata = reproducir;
+      pintarVista();
+    };
+    // Safari del iPhone a veces no muestra el <video> de la cámara (sale negro):
+    // copiamos cada fotograma a un canvas, en espejo y con el filtro elegido.
+    const vista = v.querySelector(".vista-camara"), vctx = vista.getContext("2d");
+    const filtroCanvas = "filter" in vctx;
+    let bucle = 0;
+    const pintarVista = () => {
+      cancelAnimationFrame(bucle);
+      const paso = () => {
+        if (!flujo || !vista.isConnected) return;
+        const r = vista.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const W = Math.round(r.width * dpr), Hh = Math.round(r.height * dpr);
+        if (vista.width !== W || vista.height !== Hh) { vista.width = W; vista.height = Hh; }
+        const vw = video.videoWidth, vh = video.videoHeight;
+        if (vw && vh && video.readyState >= 2) {
+          const k = Math.max(W / vw, Hh / vh), dw = vw * k, dh = vh * k;
+          vctx.save(); vctx.translate(W, 0); vctx.scale(-1, 1);
+          if (filtroCanvas) vctx.filter = filtro;
+          vctx.drawImage(video, (W - dw) / 2, (Hh - dh) / 2, dw, dh);
+          vctx.restore();
+        }
+        bucle = requestAnimationFrame(paso);
+      };
+      bucle = requestAnimationFrame(paso);
     };
     // Plan B (sirve siempre en iPhone): hacer la foto con la cámara del sistema y decorarla después
     let fija = null;
@@ -994,10 +1057,10 @@
       img.onload = () => {
         fija = img;
         if (flujo) { flujo.getTracks().forEach(t => t.stop()); flujo = null; }
-        video.classList.add("oculto");
-        let vista = v.querySelector(".foto-fija");
-        if (!vista) { vista = h(`<img class="foto-fija" alt="">`); v.querySelector(".visor").insertBefore(vista, capa); }
-        vista.src = img.src; vista.style.filter = filtro;
+        video.classList.add("oculto"); vista.classList.add("oculto");
+        let ff = v.querySelector(".foto-fija");
+        if (!ff) { ff = h(`<img class="foto-fija" alt="">`); v.querySelector(".visor").insertBefore(ff, capa); }
+        ff.src = img.src; ff.style.filter = filtro;
         aviso.classList.add("oculto");
       };
       img.src = URL.createObjectURL(archivo);
@@ -1006,13 +1069,14 @@
     aviso.replaceChildren(h(`<div class="botones-camara"><button class="btn-accion btn-encender">📷 Encender la cámara</button><label class="btn-accion btn-encender plan-b">🤳 Hacer una foto<input type="file" accept="image/*" capture="user" hidden></label></div>`));
     aviso.querySelector("button").onclick = encender;
     aviso.querySelector(".plan-b input").onchange = (e) => usarFotoFija(e.target.files[0]);
-    v._limpiar = () => { if (flujo) flujo.getTracks().forEach(t => t.stop()); };
+    v._limpiar = () => { cancelAnimationFrame(bucle); if (flujo) flujo.getTracks().forEach(t => t.stop()); };
 
     FILTROS.forEach((x, i) => {
       const b = h(`<button class="chip chip-filtro${i === 0 ? " activo" : ""}" aria-label="filtro"><span class="muestra"></span><span class="ico-filtro">${x.ico}</span></button>`);
       b.querySelector(".muestra").style.filter = x.f;
       b.onclick = () => {
         filtro = x.f; video.style.filter = x.f;
+        if (!filtroCanvas) vista.style.filter = x.f;
         const ff = v.querySelector(".foto-fija"); if (ff) ff.style.filter = x.f;
         v.querySelectorAll(".filtros .activo").forEach(y => y.classList.remove("activo")); b.classList.add("activo"); nota(700, .08);
       };
@@ -1022,6 +1086,53 @@
       const b = h(`<button class="chip${i === 0 ? " activo" : ""}">${p}</button>`);
       b.onclick = () => { pegatina = p; v.querySelectorAll(".pegatinas .activo").forEach(y => y.classList.remove("activo")); b.classList.add("activo"); nota(800, .08); };
       v.querySelector(".pegatinas").appendChild(b);
+    });
+
+    // Pintar con el dedo encima de la foto
+    const lienzo = v.querySelector(".capa-pintura"), lctx = lienzo.getContext("2d");
+    let modo = "pegar", color = COLORES_PINCEL[0], goma = false, trazo = null;
+    const ajustarLienzo = () => {
+      const r = lienzo.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const W = Math.round(r.width * dpr), Hh = Math.round(r.height * dpr);
+      if (!W || (lienzo.width === W && lienzo.height === Hh)) return;
+      let copia = null;
+      if (lienzo.width && lienzo.height) { copia = document.createElement("canvas"); copia.width = lienzo.width; copia.height = lienzo.height; copia.getContext("2d").drawImage(lienzo, 0, 0); }
+      lienzo.width = W; lienzo.height = Hh;
+      if (copia) lctx.drawImage(copia, 0, 0, W, Hh);
+    };
+    const punto = (e) => { const r = lienzo.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * lienzo.width, y: (e.clientY - r.top) / r.height * lienzo.height, k: lienzo.width / r.width }; };
+    lienzo.addEventListener("pointerdown", (e) => {
+      ajustarLienzo(); lienzo.setPointerCapture(e.pointerId);
+      trazo = punto(e);
+      lctx.globalCompositeOperation = goma ? "destination-out" : "source-over";
+      lctx.fillStyle = color; lctx.beginPath(); lctx.arc(trazo.x, trazo.y, (goma ? 18 : 7) * trazo.k, 0, Math.PI * 2); lctx.fill();
+    });
+    lienzo.addEventListener("pointermove", (e) => {
+      if (!trazo) return;
+      const p = punto(e);
+      lctx.globalCompositeOperation = goma ? "destination-out" : "source-over";
+      lctx.strokeStyle = color; lctx.lineWidth = (goma ? 36 : 14) * p.k; lctx.lineCap = lctx.lineJoin = "round";
+      lctx.beginPath(); lctx.moveTo(trazo.x, trazo.y); lctx.lineTo(p.x, p.y); lctx.stroke();
+      trazo = p;
+    });
+    const soltar = () => { trazo = null; lctx.globalCompositeOperation = "source-over"; };
+    lienzo.addEventListener("pointerup", soltar); lienzo.addEventListener("pointercancel", soltar);
+    COLORES_PINCEL.forEach((c, i) => {
+      const b = h(`<button class="chip chip-color${i === 0 ? " activo" : ""}" aria-label="color"></button>`);
+      b.style.background = c;
+      b.onclick = () => { color = c; goma = false; v.querySelectorAll(".pinceles .activo").forEach(y => y.classList.remove("activo")); b.classList.add("activo"); nota(500 + i * 60, .08); };
+      v.querySelector(".pinceles").appendChild(b);
+    });
+    const bGoma = h(`<button class="chip" aria-label="goma">🧽</button>`);
+    bGoma.onclick = () => { goma = true; v.querySelectorAll(".pinceles .activo").forEach(y => y.classList.remove("activo")); bGoma.classList.add("activo"); nota(300, .08); };
+    v.querySelector(".pinceles").appendChild(bGoma);
+    v.querySelectorAll(".btn-modo").forEach(b => b.onclick = () => {
+      modo = b.dataset.modo;
+      v.querySelectorAll(".btn-modo").forEach(y => y.classList.toggle("activo", y === b));
+      v.querySelector(".pegatinas").classList.toggle("oculto", modo !== "pegar");
+      v.querySelector(".pinceles").classList.toggle("oculto", modo !== "pintar");
+      v.querySelector(".visor").classList.toggle("pintando", modo === "pintar");
+      ajustarLienzo(); nota(650, .08);
     });
 
     // Tocar la imagen pone la pegatina elegida; tocar una pegatina la quita
@@ -1049,6 +1160,7 @@
       // El vídeo se muestra recortado (object-fit: cover): calculamos dónde cae cada pegatina
       const r = capa.getBoundingClientRect();
       const k = Math.max(r.width / w, r.height / hh), ox = (w * k - r.width) / 2, oy = (hh * k - r.height) / 2;
+      if (lienzo.width) ctx.drawImage(lienzo, -ox / k, -oy / k, r.width / k, r.height / k);
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       capa.querySelectorAll(".pegatina").forEach(p => {
         const pr = p.getBoundingClientRect();
@@ -1064,11 +1176,11 @@
       }, "image/jpeg", .92);
     };
     btn("otra").onclick = () => {
-      if (fija && !flujo) { fija = null; const ff = v.querySelector(".foto-fija"); if (ff) ff.remove(); video.classList.remove("oculto"); aviso.classList.remove("oculto"); }
+      if (fija && !flujo) { fija = null; const ff = v.querySelector(".foto-fija"); if (ff) ff.remove(); vista.classList.remove("oculto"); aviso.classList.remove("oculto"); }
       hecha.classList.add("oculto"); btn("foto").classList.remove("oculto");
       btn("guardar").classList.add("oculto"); btn("otra").classList.add("oculto");
     };
-    btn("limpiar").onclick = () => { capa.querySelectorAll(".pegatina").forEach(p => p.remove()); nota(300, .2); };
+    btn("limpiar").onclick = () => { capa.querySelectorAll(".pegatina").forEach(p => p.remove()); lctx.clearRect(0, 0, lienzo.width, lienzo.height); nota(300, .2); };
     btn("guardar").onclick = async () => {
       if (!ultima) return;
       const nombre = "foto-de-maria-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".jpg";
