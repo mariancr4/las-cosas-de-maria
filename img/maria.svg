@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <!-- Niña original: pelo moreno oscuro con dos coletas y piel muy clarita -->
-  <rect width="200" height="200" fill="#ffe7f0"/>
+  <defs><linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8dcff"/><stop offset="1" stop-color="#c9a8ff"/></linearGradient></defs>
+  <rect width="200" height="200" fill="url(#fondo)"/>
   <!-- dos coletas -->
   <path d="M46 70 C22 66 8 92 14 122 C18 142 30 154 26 168 C44 160 52 138 50 116 C49 100 54 84 46 70 Z" fill="#2a1b14"/>
   <path d="M154 70 C178 66 192 92 186 122 C182 142 170 154 174 168 C156 160 148 138 150 116 C151 100 146 84 154 70 Z" fill="#2a1b14"/>
@@ -10,14 +11,14 @@
   <!-- pelo de arriba -->
   <path d="M48 100 C44 54 72 30 100 30 C128 30 156 54 152 100 Z" fill="#2a1b14"/>
   <!-- cuello y cuerpo -->
-  <rect x="88" y="140" width="24" height="22" rx="8" fill="#fbe3d6"/>
-  <path d="M46 200 C50 170 72 156 100 156 C128 156 150 170 154 200 Z" fill="#ff8fb1"/>
+  <rect x="88" y="140" width="24" height="22" rx="8" fill="#fbe3d6" stroke="#4a3b5c" stroke-width="3.5"/>
+  <path d="M46 200 C50 170 72 156 100 156 C128 156 150 170 154 200 Z" fill="#ff8fb1" stroke="#4a3b5c" stroke-width="3.5"/>
   <path d="M84 158 Q100 172 116 158" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
   <!-- cara -->
-  <ellipse cx="100" cy="102" rx="50" ry="54" fill="#fdeee6"/>
+  <ellipse cx="100" cy="102" rx="50" ry="54" fill="#fdeee6" stroke="#4a3b5c" stroke-width="3.5"/>
   <!-- orejas -->
-  <ellipse cx="51" cy="106" rx="8" ry="11" fill="#fbe3d6"/>
-  <ellipse cx="149" cy="106" rx="8" ry="11" fill="#fbe3d6"/>
+  <ellipse cx="51" cy="106" rx="8" ry="11" fill="#fbe3d6" stroke="#4a3b5c" stroke-width="3.5"/>
+  <ellipse cx="149" cy="106" rx="8" ry="11" fill="#fbe3d6" stroke="#4a3b5c" stroke-width="3.5"/>
   <!-- flequillo -->
   <path d="M50 96 C48 58 72 40 100 40 C128 40 152 58 150 96 C140 84 132 70 126 60 C118 76 100 82 86 80 C78 88 64 94 50 96 Z" fill="#2a1b14"/>
   <!-- ojos -->

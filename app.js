@@ -185,7 +185,7 @@
   const CATEGORIAS = [
     { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras", "puntos", "laberinto"] },
     { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "puzle", "burbujas", "tarta", "dientes"] },
-    { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "musica", "fotos"] },
+    { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "rasca", "musica", "fotos"] },
     { id: "ver", ico: "📺", nombre: "Ver", clase: "c-lila", rutas: ["videos"] },
   ];
   const todasSecciones = () => SECCIONES.concat((window.JUEGOS_EXTRA || []).map(j => ({ ...j, voz: j.nombre })));
