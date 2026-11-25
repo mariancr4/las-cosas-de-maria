@@ -2,13 +2,37 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Las cosas de María</title>
+  <meta name="description" content="Juegos y vídeos para María: colores, formas, parejas, contar, pintar y música.">
   <meta name="theme-color" content="#ff8fb1">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌈</text></svg>">
+
+  <!-- App instalable (PWA) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="María">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <!-- Miniatura al compartir (WhatsApp, redes...). Si cambias el dominio, cambia también estas direcciones. -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:title" content="Las cosas de María">
+  <meta property="og:description" content="Juegos y vídeos para María 🌈">
+  <meta property="og:url" content="https://las-cosas-de-maria.vercel.app/">
+  <meta property="og:image" content="https://las-cosas-de-maria.vercel.app/img/compartir.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Las cosas de María: juegos y vídeos">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Las cosas de María">
+  <meta name="twitter:description" content="Juegos y vídeos para María 🌈">
+  <meta name="twitter:image" content="https://las-cosas-de-maria.vercel.app/img/compartir.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="barra">
@@ -21,7 +45,7 @@
 
   <div id="premio" class="premio oculto" aria-hidden="true"></div>
 
-  <script src="videos.js"></script>
-  <script src="app.js"></script>
+  <script src="/videos.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

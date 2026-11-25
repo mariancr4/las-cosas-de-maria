@@ -82,13 +82,13 @@
     { ruta: "contar", ico: "🔢", nombre: "Contar", clase: "c-amarillo", voz: "Contar" },
     { ruta: "pintar", ico: "🖍️", nombre: "Pintar", clase: "c-verde", voz: "Pintar" },
     { ruta: "musica", ico: "🎹", nombre: "Música", clase: "c-naranja", voz: "Música" },
-    { ruta: "videos", ico: "📺", nombre: "Vídeos", clase: "c-rosa", voz: "Vídeos" },
+    { ruta: "videos", ico: "📺", nombre: "Vídeos", clase: "c-cian", voz: "Vídeos" },
   ];
 
   function portada() {
     const v = h(`<section>
       <div class="saludo">
-        <div class="avatar" id="avatar"><img src="img/maria.png" alt="María"></div>
+        <div class="avatar" id="avatar"><img src="/img/maria.png" alt="María"></div>
         <p class="hola">¡Hola, María!</p>
       </div>
       <div class="rejilla"></div>
@@ -405,4 +405,9 @@
   };
   window.addEventListener("hashchange", navegar);
   navegar();
+
+  /* ---------- App instalable (PWA) ---------- */
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  }
 })();
