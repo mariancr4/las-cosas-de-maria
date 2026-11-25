@@ -930,7 +930,9 @@
         <img class="foto-hecha oculto" alt="Mi foto">
         <div class="aviso-camara oculto"></div>
       </div>
+      <div class="titulo-fila">🎨 Filtros</div>
       <div class="fila filtros"></div>
+      <div class="titulo-fila">✨ Dibujitos</div>
       <div class="fila pegatinas"></div>
       <div class="acciones">
         <button class="btn-accion btn-disparar" data-a="foto">📸 ¡Foto!</button>
@@ -1007,7 +1009,8 @@
     v._limpiar = () => { if (flujo) flujo.getTracks().forEach(t => t.stop()); };
 
     FILTROS.forEach((x, i) => {
-      const b = h(`<button class="chip${i === 0 ? " activo" : ""}">${x.ico}</button>`);
+      const b = h(`<button class="chip chip-filtro${i === 0 ? " activo" : ""}" aria-label="filtro"><span class="muestra"></span><span class="ico-filtro">${x.ico}</span></button>`);
+      b.querySelector(".muestra").style.filter = x.f;
       b.onclick = () => {
         filtro = x.f; video.style.filter = x.f;
         const ff = v.querySelector(".foto-fija"); if (ff) ff.style.filter = x.f;

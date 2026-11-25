@@ -615,3 +615,8 @@ main { padding-top: 18px; }
   font-size: .85rem; font-weight: 600; padding: 4px 12px; text-decoration: underline; text-underline-offset: 3px;
 }
 .btn-instalar:active { transform: none; opacity: .6; }
+/* Fotos: títulos de fila y muestras de filtro */
+.titulo-fila { font-weight: 800; font-size: 1.05rem; margin-bottom: -4px; }
+.chip-filtro { position: relative; overflow: hidden; width: 64px; height: 64px; padding: 0; }
+.chip-filtro .muestra { position: absolute; inset: 0; background: linear-gradient(135deg, #ffb3c7 0%, #ffe27a 35%, #8fd3ff 70%, #a6f08a 100%); }
+.chip-filtro .ico-filtro { position: relative; font-size: 1.4rem; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
