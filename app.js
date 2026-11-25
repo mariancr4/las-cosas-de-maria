@@ -1168,6 +1168,18 @@
   window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); avisoInstalar = e; document.querySelectorAll(".btn-instalar").forEach(b => b.classList.remove("oculto")); });
   window.addEventListener("appinstalled", () => document.querySelectorAll(".btn-instalar").forEach(b => b.remove()));
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).then(reg => {
+        // Busca versión nueva al abrir y cada vez que se vuelve a la app
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+      }).catch(() => {});
+    });
+    // Cuando llega una versión nueva, recarga una sola vez para usarla
+    let recargada = false;
+    const habiaControl = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!habiaControl || recargada) return;
+      recargada = true; location.reload();
+    });
   }
 })();
