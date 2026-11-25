@@ -246,7 +246,7 @@
         caja.classList.add("cepillando");
         v.querySelector('[data-a="empezar"]').classList.add("oculto");
         v.querySelector('[data-a="parar"]').classList.remove("oculto");
-        H.decir("¡A cepillar!");
+        H.decir("¡A cepillar!", true);
         musica = setInterval(() => { H.nota(MELODIA[paso % MELODIA.length], .25, "triangle"); paso++; }, 400);
         reloj = setInterval(() => {
           t++; pintar();
@@ -254,9 +254,9 @@
           if (z !== zona) {
             if (zona >= 0) caja.classList.remove(ZONAS[zona].cls);
             zona = z; caja.classList.add(ZONAS[z].cls);
-            txt.textContent = ZONAS[z].voz; H.decir(ZONAS[z].voz);
+            txt.textContent = ZONAS[z].voz; H.decir(ZONAS[z].voz, true);
           }
-          if (t === 60) H.decir("¡Ya vamos por la mitad!");
+          if (t === 60) H.decir("¡Ya vamos por la mitad!", true);
           if (t >= DUR) parar(true);
         }, 1000);
       };

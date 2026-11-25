@@ -104,8 +104,17 @@
     if ("speechSynthesis" in window) speechSynthesis.cancel();
   };
 
-  const decir = (texto) => {
+  // La voz solo suena cuando se toca un botón de escuchar (👂) o en el piano.
+  // Cualquier otro toque retira el permiso, así no se oyen frases a destiempo.
+  const VOZ_BOTONES = ".btn-oir, .musica button, [data-voz]";
+  let vozHasta = 0;
+  document.addEventListener("pointerdown", (e) => {
+    vozHasta = e.target.closest && e.target.closest(VOZ_BOTONES) ? Date.now() + 12000 : 0;
+  }, true);
+  document.addEventListener("keydown", (e) => { if (e.target.closest && e.target.closest(VOZ_BOTONES)) vozHasta = Date.now() + 12000; }, true);
+  const decir = (texto, siempre) => {
     if (!sonido) return;
+    if (!siempre && Date.now() > vozHasta) return;
     callar();
     const n = nombreAudio(texto);
     const sp = !AUDIOS.has(n) && enSprite(n);
