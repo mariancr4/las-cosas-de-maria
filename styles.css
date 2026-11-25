@@ -607,3 +607,11 @@ main { padding-top: 18px; }
 .aviso-camara small { font-weight: 600; font-size: .85em; }
 .aviso-camara .plan-b { margin-top: 12px; cursor: pointer; }
 .botones-camara .plan-b { margin-top: 0; }
+
+/* Instalar la app: discreto, pequeño y al final de la portada */
+.instalar-zona { margin-top: 34px; opacity: .75; }
+.btn-instalar {
+  background: transparent; color: var(--texto); box-shadow: none;
+  font-size: .85rem; font-weight: 600; padding: 4px 12px; text-decoration: underline; text-underline-offset: 3px;
+}
+.btn-instalar:active { transform: none; opacity: .6; }
