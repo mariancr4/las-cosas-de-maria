@@ -631,3 +631,48 @@ main { padding-top: 18px; }
 .btn-modo { background: #fff; border-radius: 999px; padding: 10px 18px; font-size: 1.1rem; font-weight: 800; box-shadow: var(--sombra); color: var(--texto); }
 .btn-modo.activo { background: #ff5f9e; color: #fff; }
 .chip-color { border: 4px solid #fff; }
+
+/* ---------- Une los puntos ---------- */
+.puntos-juego, .laberinto-juego, .dientes-juego { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.hoja-puntos, .hoja-laberinto {
+  background: #fff; border-radius: var(--radio); box-shadow: var(--sombra); padding: 3%;
+  width: min(100%, 62vh, 560px); aspect-ratio: 1; touch-action: none;
+}
+.hoja-puntos svg, .hoja-laberinto svg { width: 100%; height: 100%; display: block; touch-action: none; }
+.forma-puntos { fill: transparent; stroke: none; transition: fill .6s; }
+.forma-puntos.rellena { fill: var(--c); }
+.trazo-puntos { fill: none; stroke: #4a3b5c; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.punto circle { fill: #c9b8f0; stroke: #fff; stroke-width: 1; }
+.punto text { font: 800 6px "Baloo 2", sans-serif; fill: #4a3b5c; text-anchor: middle; pointer-events: none; }
+.punto.siguiente circle { fill: #ff5f9e; animation: latido 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.punto.unido circle { fill: #4a3b5c; }
+@keyframes latido { 50% { transform: scale(1.45); } }
+
+/* ---------- Laberintos ---------- */
+.laberinto-juego .suelo { fill: #fff8e6; }
+.laberinto-juego .muros { fill: none; stroke: #9b5cff; stroke-width: 2.4; stroke-linecap: round; }
+.laberinto-juego .rastro { fill: none; stroke: #ffd400; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.laberinto-juego text { font-size: 13px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.laberinto-juego .pollito { transition: x .12s, y .12s; }
+
+/* ---------- Dientes ---------- */
+.boca-caja { position: relative; width: min(92vw, 420px); aspect-ratio: 1; display: grid; place-items: center; }
+.boca-caja .reloj { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.reloj circle { fill: none; stroke-width: 8; }
+.reloj .fondo { stroke: #fff; }
+.reloj .progreso { stroke: #22b8cf; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.boca-caja .boca { width: 66%; position: relative; }
+.boca .labios { fill: #ff7a8a; stroke: #e2546a; stroke-width: 3; }
+.boca .encia { fill: #ffb3c0; }
+.boca .diente { fill: #fff; stroke: #e9dfe8; stroke-width: 1.2; }
+.boca .mancha { fill: #e8d27a; transition: opacity .8s; }
+.boca .mancha.limpia { opacity: 0; }
+.boca-caja .cepillo { position: absolute; font-size: clamp(3rem, 14vw, 5rem); top: 30%; left: 40%; opacity: 0; pointer-events: none; }
+.boca-caja.cepillando .cepillo { opacity: 1; animation: cepillar .35s ease-in-out infinite alternate; }
+.boca-caja.z-abajo .cepillo { top: 50%; }
+.boca-caja.z-dentro .cepillo { top: 40%; transform: rotate(180deg); }
+.boca-caja.z-muelas .cepillo { top: 42%; left: 18%; }
+@keyframes cepillar { from { translate: -28px 0; } to { translate: 28px 0; } }
+.boca-caja .tiempo { position: absolute; bottom: 9%; font-size: 1.6rem; font-weight: 800; background: #fff; border-radius: 999px; padding: 0 14px; box-shadow: var(--sombra); }
+.boca-caja.brillan::after { content: "✨"; position: absolute; top: 14%; right: 18%; font-size: 3rem; animation: salto .8s infinite alternate; }
+.btn-grande { font-size: 1.4rem; padding: 14px 28px; }

@@ -154,8 +154,8 @@
 
   /* Categorías de la portada. Un juego nuevo que no esté en ninguna lista va a «Jugar». */
   const CATEGORIAS = [
-    { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras"] },
-    { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "puzle", "burbujas", "tarta"] },
+    { id: "aprender", ico: "🧠", nombre: "Aprender", clase: "c-azul", rutas: ["colores", "formas", "contar", "letras", "tamanos", "sombras", "puntos", "laberinto"] },
+    { id: "jugar", ico: "🎲", nombre: "Jugar", clase: "c-rosa", rutas: ["memoria", "puzle", "burbujas", "tarta", "dientes"] },
     { id: "crear", ico: "🎨", nombre: "Crear", clase: "c-verde", rutas: ["pintar", "colorear", "musica", "fotos"] },
     { id: "ver", ico: "📺", nombre: "Ver", clase: "c-lila", rutas: ["videos"] },
   ];
